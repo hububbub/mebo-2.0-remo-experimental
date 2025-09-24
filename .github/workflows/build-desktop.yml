@@ -1,33 +1,21 @@
 name: Build Desktop App
 
 on:
-  workflow_dispatch:   # manual run button in Actions tab
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: windows-latest
-            build: win
-            artifact: Windows-Installer
-          - os: macos-latest
-            build: mac
-            artifact: MacOS-Installer
-          - os: ubuntu-latest
-            build: linux
-            artifact: Linux-Installer
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -38,10 +26,10 @@ jobs:
         run: npm run build
 
       - name: Package app
-        run: npx electron-builder --${{ matrix.build }} --publish never
+        run: npm run dist
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: ${{ matrix.os }}-Installer
           path: dist/**
