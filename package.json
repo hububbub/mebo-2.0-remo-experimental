@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder --publish=never"
   },
   "author": "Your Name",
   "license": "MIT",
@@ -29,7 +29,8 @@
       "icon": "build/icon.ico"
     },
     "linux": {
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "category": "Utility"
     }
   }
 }
