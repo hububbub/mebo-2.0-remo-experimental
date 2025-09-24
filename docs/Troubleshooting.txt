@@ -1,0 +1,25 @@
+Mebo Control - Troubleshooting
+
+1. Wi-Fi Connection Issues
+- Ensure you are connected to the Mebo robot’s Wi-Fi network.
+- If no Wi-Fi appears, reset the Mebo by turning it off/on.
+- Try the "Reconnect Now" button in the dashboard.
+
+2. Video/Audio Issues
+- Check that your computer microphone and speakers are enabled.
+- Restart the app if video feed freezes.
+- On Raspberry Pi, ensure camera/audio modules are enabled.
+
+3. AI Model Errors
+- If models fail to load: check that required model files exist in /models.
+- Use the Setup Wizard -> Import Models option to reimport models.
+- Try switching to a smaller model (like Mistral 7B instead of larger ones).
+
+4. Installer/Setup Problems
+- Windows: right-click installer -> Run as Administrator.
+- macOS: right-click .dmg -> Open to bypass Gatekeeper for unsigned builds.
+- Linux: chmod +x .AppImage before running.
+
+5. Reset/Repair
+- Delete config.json in the app’s folder to restart Setup Wizard.
+- If all else fails, reinstall the app using the provided installer.
