@@ -1,27 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mebo Control</title>
+  <meta charset="UTF-8">
+  <title>Mebo 2.0 Control</title>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #121212;
-      color: #ffffff;
-    }
-    h1 {
-      font-size: 2rem;
+      background: #111;
+      color: #eee;
       text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #222;
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    main {
+      padding: 2rem;
+    }
+    button {
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
     }
   </style>
 </head>
 <body>
-  <h1>Mebo Control App is Running 🚀</h1>
+  <header>Mebo 2.0 Control App</header>
+  <main>
+    <p>Welcome! This is the starter UI for your Mebo Control App.</p>
+    <button onclick="alert('Move Forward')">Forward</button>
+    <button onclick="alert('Move Backward')">Backward</button>
+    <button onclick="alert('Turn Left')">Left</button>
+    <button onclick="alert('Turn Right')">Right</button>
+  </main>
 </body>
 </html>
