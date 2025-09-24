@@ -1,20 +1,23 @@
 name: Build Desktop App
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -22,11 +25,29 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build installers
-        run: npx electron-builder --${{ matrix.os == 'ubuntu-latest' && 'linux' || matrix.os == 'windows-latest' && 'win' || 'mac' }}
+      - name: Build app
+        run: npx electron-builder --publish never
 
-      - name: Upload installers
+      # Upload Mac .dmg
+      - name: Upload macOS artifact
+        if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-Installer
-          path: dist/*
+          name: mebo-control-mac
+          path: dist/*.dmg
+
+      # Upload Windows .exe
+      - name: Upload Windows artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mebo-control-windows
+          path: dist/*.exe
+
+      # Upload Linux .AppImage
+      - name: Upload Linux artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mebo-control-linux
+          path: dist/*.AppImage
