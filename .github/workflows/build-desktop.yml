@@ -36,10 +36,18 @@ jobs:
         env:
           GH_TOKEN: ""   # prevents publish errors
 
-      - name: Package zip
+      - name: Package zip (Linux/Mac)
+        if: matrix.os != 'windows-latest'
         run: |
           cd dist
           zip -r ../MeboControl-${{ matrix.os_name }}.zip .
+          cd ..
+
+      - name: Package zip (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd dist
+          powershell Compress-Archive -Path * -DestinationPath ../MeboControl-${{ matrix.os_name }}.zip
           cd ..
 
       - name: Upload artifact
