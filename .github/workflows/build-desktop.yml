@@ -2,52 +2,46 @@ name: Build Desktop App
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            os_name: Linux
+          - os: windows-latest
+            os_name: Windows
+          - os: macos-latest
+            os_name: Mac
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: npm install
 
       - name: Build app
-        run: npx electron-builder --publish never
+        run: npm run build
 
-      # Upload Mac .dmg
-      - name: Upload macOS artifact
-        if: matrix.os == 'macos-latest'
+      - name: Package zip
+        run: |
+          cd dist
+          zip -r ../MeboControl-${{ matrix.os_name }}.zip .
+          cd ..
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mebo-control-mac
-          path: dist/*.dmg
-
-      # Upload Windows .exe
-      - name: Upload Windows artifact
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mebo-control-windows
-          path: dist/*.exe
-
-      # Upload Linux .AppImage
-      - name: Upload Linux artifact
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mebo-control-linux
-          path: dist/*.AppImage
+          name: MeboControl-${{ matrix.os_name }}
+          path: MeboControl-${{ matrix.os_name }}.zip
