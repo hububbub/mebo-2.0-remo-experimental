@@ -1,10 +1,9 @@
-name: Build Desktop App
+name: Build & Release Mebo Control App
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - "v*"   # Triggers only when you push a version tag like v1.0.0
 
 jobs:
   build:
@@ -14,47 +13,58 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build app (no publish)
-        run: npx electron-builder --publish never
+      - name: Build app
+        run: npm run build
 
-      # Linux packaging
-      - name: Package artifacts (Linux)
-        if: runner.os == 'Linux'
+      # Package portable builds
+      - name: Zip Windows portable build
+        if: matrix.os == 'windows-latest'
         run: |
           cd dist
-          zip -r ../MeboControl-Linux.zip .
+          powershell Compress-Archive -Path "Mebo Control.exe" -DestinationPath "MeboControl-Windows.zip"
 
-      # macOS packaging
-      - name: Package artifacts (macOS)
-        if: runner.os == 'macOS'
+      - name: Zip Linux portable build
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd dist
-          zip -r ../MeboControl-Mac.zip .
+          zip -r MeboControl-Linux.zip *.AppImage
 
-      # Windows packaging
-      - name: Package artifacts (Windows)
-        if: runner.os == 'Windows'
+      - name: Zip macOS build
+        if: matrix.os == 'macos-latest'
         run: |
           cd dist
-          powershell Compress-Archive -Path * -DestinationPath ../MeboControl-Windows.zip
+          zip -r MeboControl-Mac.zip *.dmg
 
-      - name: Upload artifacts (zip + native installer)
-        uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ runner.os }}-build
-          path: |
-            dist/*.zip
-            dist/*.exe
-            dist/*.dmg
-            dist/*.AppImage
+          name: mebo-control-${{ matrix.os }}
+          path: dist/*.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
