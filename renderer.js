@@ -1,116 +1,154 @@
-// renderer.js
-
-// ============ BUTTON + KEYBOARD CONTROL ============
+// === Utility ===
 function sendCommand(endpoint) {
-  fetch(`http://192.168.10.1:80/${endpoint}`)
-    .then(() => console.log("Sent command:", endpoint))
-    .catch(err => console.error("Command error:", err));
+  fetch(`http://192.168.10.1/${endpoint}`)
+    .then(() => console.log("Sent:", endpoint))
+    .catch(err => console.error("Error sending command:", err));
 }
 
-// Movement buttons
-document.getElementById("forwardBtn")?.addEventListener("click", () => sendCommand("move?dir=forward"));
-document.getElementById("backwardBtn")?.addEventListener("click", () => sendCommand("move?dir=backward"));
-document.getElementById("leftBtn")?.addEventListener("click", () => sendCommand("move?dir=left"));
-document.getElementById("rightBtn")?.addEventListener("click", () => sendCommand("move?dir=right"));
+// === Default Shortcuts ===
+let keyBindings = {
+  forward: "w",
+  backward: "s",
+  left: "a",
+  right: "d",
+  armUp: "ArrowUp",
+  armDown: "ArrowDown",
+  clawOpen: "o",
+  clawClose: "c",
+  camUp: "PageUp",
+  camDown: "PageDown"
+};
 
-// Arm + claw
-document.getElementById("armUpBtn")?.addEventListener("click", () => sendCommand("arm?dir=up"));
-document.getElementById("armDownBtn")?.addEventListener("click", () => sendCommand("arm?dir=down"));
-document.getElementById("clawOpenBtn")?.addEventListener("click", () => sendCommand("claw?dir=open"));
-document.getElementById("clawCloseBtn")?.addEventListener("click", () => sendCommand("claw?dir=close"));
+// Load saved shortcuts
+if (localStorage.getItem("meboKeyBindings")) {
+  keyBindings = JSON.parse(localStorage.getItem("meboKeyBindings"));
+}
 
-// Camera tilt
-document.getElementById("camUpBtn")?.addEventListener("click", () => sendCommand("cam?dir=up"));
-document.getElementById("camDownBtn")?.addEventListener("click", () => sendCommand("cam?dir=down"));
+// === Update Key Table ===
+function refreshKeyTable() {
+  document.querySelectorAll(".keyCell").forEach(cell => {
+    const action = cell.dataset.action;
+    cell.textContent = keyBindings[action];
+  });
+}
+refreshKeyTable();
 
-// Keyboard mapping
+// === Rebinding Logic ===
+document.querySelectorAll(".keyCell").forEach(cell => {
+  cell.addEventListener("click", () => {
+    cell.textContent = "Press a key...";
+    const listener = (e) => {
+      keyBindings[cell.dataset.action] = e.key;
+      localStorage.setItem("meboKeyBindings", JSON.stringify(keyBindings));
+      refreshKeyTable();
+      document.removeEventListener("keydown", listener, true);
+    };
+    document.addEventListener("keydown", listener, true);
+  });
+});
+
+// === Keyboard Shortcuts ===
 document.addEventListener("keydown", (e) => {
-  switch (e.key.toLowerCase()) {
-    case "w": sendCommand("move?dir=forward"); break;
-    case "s": sendCommand("move?dir=backward"); break;
-    case "a": sendCommand("move?dir=left"); break;
-    case "d": sendCommand("move?dir=right"); break;
-    case "u": sendCommand("arm?dir=up"); break;
-    case "j": sendCommand("arm?dir=down"); break;
-    case "o": sendCommand("claw?dir=open"); break;
-    case "p": sendCommand("claw?dir=close"); break;
-    case "i": sendCommand("cam?dir=up"); break;
-    case "k": sendCommand("cam?dir=down"); break;
+  switch (e.key) {
+    case keyBindings.forward: sendCommand("moveForward"); break;
+    case keyBindings.backward: sendCommand("moveBackward"); break;
+    case keyBindings.left: sendCommand("turnLeft"); break;
+    case keyBindings.right: sendCommand("turnRight"); break;
+    case keyBindings.armUp: sendCommand("armUp"); break;
+    case keyBindings.armDown: sendCommand("armDown"); break;
+    case keyBindings.clawOpen: sendCommand("clawOpen"); break;
+    case keyBindings.clawClose: sendCommand("clawClose"); break;
+    case keyBindings.camUp: sendCommand("camUp"); break;
+    case keyBindings.camDown: sendCommand("camDown"); break;
   }
 });
 
-// ============ VIDEO STREAM ============
-document.getElementById("videoFeed").src = "http://192.168.10.1:80/stream";
+// === Button Clicks ===
+document.getElementById("forwardBtn").onclick = () => sendCommand("moveForward");
+document.getElementById("backwardBtn").onclick = () => sendCommand("moveBackward");
+document.getElementById("leftBtn").onclick = () => sendCommand("turnLeft");
+document.getElementById("rightBtn").onclick = () => sendCommand("turnRight");
+document.getElementById("armUpBtn").onclick = () => sendCommand("armUp");
+document.getElementById("armDownBtn").onclick = () => sendCommand("armDown");
+document.getElementById("clawOpenBtn").onclick = () => sendCommand("clawOpen");
+document.getElementById("clawCloseBtn").onclick = () => sendCommand("clawClose");
+document.getElementById("camUpBtn").onclick = () => sendCommand("camUp");
+document.getElementById("camDownBtn").onclick = () => sendCommand("camDown");
 
-// ============ AUDIO STREAM ============
-const audioElement = document.getElementById("meboAudio");
-audioElement.src = "http://192.168.10.1:80/audio"; // replace if different
-audioElement.volume = 0.7;
+// === Video Feed ===
+document.getElementById("videoFeed").src = "http://192.168.10.1:8080/?action=stream";
 
-// ============ TTS (send text to speaker) ============
-document.getElementById("speakBtn")?.addEventListener("click", () => {
+// === Audio Feed ===
+document.getElementById("meboAudio").src = "http://192.168.10.1:8080/audio";
+
+// === TTS ===
+document.getElementById("speakBtn").onclick = () => {
   const text = document.getElementById("ttsInput").value;
   if (!text) return;
-  fetch(`http://192.168.10.1:80/speak?text=${encodeURIComponent(text)}`)
-    .catch(err => console.error("TTS error:", err));
-});
+  console.log("Speaking:", text);
+  // TODO: TTS → send to robot speaker
+};
 
-// ============ MIC STREAM (send voice live to Mebo speaker) ============
-let micStream, micRecorder;
-const micBtn = document.getElementById("micBtn");
-
-micBtn?.addEventListener("click", async () => {
-  if (micRecorder) {
-    micRecorder.stop();
-    micRecorder = null;
-    micBtn.innerText = "🎤 Mic (Off)";
-    return;
-  }
-
-  micBtn.innerText = "🎤 Mic (On)";
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-  const audioCtx = new AudioContext();
-  const source = audioCtx.createMediaStreamSource(micStream);
-  const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-
-  processor.onaudioprocess = (e) => {
-    const inputData = e.inputBuffer.getChannelData(0);
-    // Convert float to 16-bit PCM
-    const buffer = new ArrayBuffer(inputData.length * 2);
-    const view = new DataView(buffer);
-    for (let i = 0; i < inputData.length; i++) {
-      const s = Math.max(-1, Math.min(1, inputData[i]));
-      view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+// === Mic Streaming ===
+let micActive = false;
+let micStream = null;
+document.getElementById("micBtn").onclick = async () => {
+  if (!micActive) {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // TODO: send micStream to robot’s speaker endpoint
+      document.getElementById("micBtn").textContent = "🎤 Mic (On)";
+      micActive = true;
+    } catch (err) {
+      console.error("Mic error:", err);
     }
-    // Send raw audio chunk
-    fetch("http://192.168.10.1:80/mic", {
-      method: "POST",
-      body: buffer
-    }).catch(err => console.error("Mic stream error:", err));
-  };
-
-  source.connect(processor);
-  processor.connect(audioCtx.destination);
-  micRecorder = processor;
-});
-
-// ============ AI TAB ============
-document.getElementById("sendAiBtn")?.addEventListener("click", async () => {
-  const msg = document.getElementById("aiInput").value;
-  const mode = document.getElementById("aiMode").value; // "online" or "local"
-
-  try {
-    const res = await fetch("http://localhost:3030/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg, mode })
-    });
-
-    const data = await res.json();
-    document.getElementById("aiOutput").innerText = data.reply;
-  } catch (err) {
-    console.error("AI error:", err);
-    document.getElementById("aiOutput").innerText = "❌ AI request failed.";
+  } else {
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+    }
+    document.getElementById("micBtn").textContent = "🎤 Mic (Off)";
+    micActive = false;
   }
-});
+};
+
+// === AI Assistant ===
+function tryExecuteJSONCommand(text) {
+  try {
+    const json = JSON.parse(text);
+    if (json.action) {
+      sendCommand(json.action);
+      return `[Executed action: ${json.action}]`;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+document.getElementById("sendAiBtn").onclick = async () => {
+  const mode = document.getElementById("aiMode").value;
+  const query = document.getElementById("aiInput").value;
+  const output = document.getElementById("aiOutput");
+
+  if (!query) return;
+
+  output.innerHTML += `<div>> ${query}</div>`;
+
+  let reply;
+  if (mode === "online") {
+    // Placeholder: replace with actual OpenAI API call
+    reply = `{ "action": "moveForward" }`; // simulate response
+  } else {
+    reply = "Sure, I'll move backward! {\"action\":\"moveBackward\"}";
+  }
+
+  // Check for JSON command inside reply
+  const executed = tryExecuteJSONCommand(reply);
+  if (executed) {
+    output.innerHTML += `<div style="color:#0af">${executed}</div>`;
+  } else {
+    output.innerHTML += `<div style="color:#0af">${reply}</div>`;
+  }
+
+  output.scrollTop = output.scrollHeight;
+};
