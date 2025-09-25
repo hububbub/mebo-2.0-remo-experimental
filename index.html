@@ -1,49 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Mebo 2.0 Control</title>
+  <title>Mebo Control</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #eee;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #222;
-      padding: 1rem;
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
-    main {
-      padding: 2rem;
-    }
-    button {
-      margin: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #4caf50;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #45a049;
-    }
+    body { font-family: sans-serif; }
+    #settings { padding: 10px; }
+    .ai-settings { margin-top: 10px; }
+    label { display: block; margin: 5px 0; }
   </style>
 </head>
 <body>
-  <header>Mebo 2.0 Control App</header>
-  <main>
-    <p>Welcome! This is the starter UI for your Mebo Control App.</p>
-    <button onclick="alert('Move Forward')">Forward</button>
-    <button onclick="alert('Move Backward')">Backward</button>
-    <button onclick="alert('Turn Left')">Left</button>
-    <button onclick="alert('Turn Right')">Right</button>
-  </main>
+  <h1>Mebo Control App</h1>
+
+  <!-- AI Settings Tab -->
+  <div id="settings">
+    <h2>AI Settings</h2>
+    <div class="ai-settings">
+      <label>
+        <input type="radio" name="aiProvider" value="cloud" checked>
+        Cloud (OpenAI)
+      </label>
+      <label>
+        <input type="radio" name="aiProvider" value="local">
+        Local API
+      </label>
+
+      <label>
+        Local API URL:
+        <input type="text" id="localApiUrl" value="http://localhost:5000/v1/chat/completions">
+      </label>
+
+      <button onclick="saveAISettings()">Save AI Settings</button>
+    </div>
+  </div>
+
+  <script>
+    function saveAISettings() {
+      const provider = document.querySelector("input[name='aiProvider']:checked").value;
+      window.meboAI.setProvider(provider);
+
+      if (provider === "local") {
+        const url = document.getElementById("localApiUrl").value;
+        window.meboAI.setLocalApiUrl(url);
+      }
+
+      alert("AI settings saved: " + provider);
+    }
+
+    async function analyzeView() {
+      const frame = await captureFrame();
+      const result = await window.meboAI.analyzeFrame(frame);
+      dispatchLLMResponse(result);
+    }
+
+    function dispatchLLMResponse(json) {
+      if (json.say) speakText(json.say);
+      if (json.action) sendMeboCommand(json.action, json.duration || 1000);
+    }
+
+    // Placeholder functions (replace with real ones in your app)
+    function captureFrame() { return Promise.resolve("data:image/jpeg;base64,..."); }
+    function speakText(text) { console.log("Speaking:", text); }
+    function sendMeboCommand(action, duration) {
+      console.log("Executing:", action, "for", duration, "ms");
+    }
+  </script>
 </body>
 </html>
