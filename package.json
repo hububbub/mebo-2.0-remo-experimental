@@ -9,10 +9,11 @@
   },
   "author": "Your Name",
   "license": "MIT",
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.13.3",
-    "axios": "^1.6.7"
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.mebo.control",
@@ -23,8 +24,18 @@
     "directories": {
       "buildResources": "build"
     },
-    "mac": { "icon": "build/icon.icns" },
-    "win": { "icon": "build/icon.ico" },
-    "linux": { "icon": "build/icon.png" }
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": "portable",    // ⚡ portable build instead of installer
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage"],  // AppImage = portable for Linux
+      "icon": "build/icon.png",
+      "category": "Utility"
+    }
   }
 }
