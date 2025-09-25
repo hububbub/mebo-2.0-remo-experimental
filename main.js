@@ -1,8 +1,7 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
-const express = require("express");
-const bodyParser = require("body-parser");
-const fetch = require("node-fetch");
+const http = require("http");
+const https = require("https");
 
 // Create main app window
 function createWindow() {
@@ -22,80 +21,123 @@ function createWindow() {
 // Electron lifecycle
 app.whenReady().then(() => {
   createWindow();
-
-  app.on("activate", function () {
+  app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on("window-all-closed", function () {
+app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
 // ==================
-// EXPRESS SERVER FOR AI
+// BUILT-IN HTTP SERVER (no express)
 // ==================
-const server = express();
-server.use(bodyParser.json());
-
-// ENV VARS
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const LOCAL_LLM_URL = "http://localhost:5000/v1/chat/completions";
 
-// Handle AI requests
-server.post("/ai", async (req, res) => {
-  const { message, mode } = req.body;
+// Small helper for HTTPS POST
+function httpsPost(options, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
 
-  try {
-    if (mode === "online") {
-      if (!OPENAI_API_KEY) {
-        return res.json({ reply: "❌ No OpenAI API key found." });
+// Local LLM call using http
+function httpPost(url, body) {
+  return new Promise((resolve, reject) => {
+    const { hostname, port, path } = new URL(url);
+    const options = {
+      hostname,
+      port,
+      path,
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    };
+
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// Minimal AI server
+http.createServer(async (req, res) => {
+  if (req.method === "POST" && req.url === "/ai") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      try {
+        const { message, mode } = JSON.parse(body);
+        let reply = "⚠️ Unknown error.";
+
+        if (mode === "online") {
+          if (!OPENAI_API_KEY) {
+            reply = "❌ No OpenAI API key.";
+          } else {
+            const data = await httpsPost(
+              {
+                hostname: "api.openai.com",
+                path: "/v1/chat/completions",
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${OPENAI_API_KEY}`,
+                  "Content-Type": "application/json"
+                }
+              },
+              JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "user", content: message }]
+              })
+            );
+            reply = data.choices?.[0]?.message?.content || "⚠️ No response.";
+          }
+        } else if (mode === "local") {
+          const data = await httpPost(
+            LOCAL_LLM_URL,
+            JSON.stringify({
+              model: "local-llm",
+              messages: [{ role: "user", content: message }]
+            })
+          );
+          reply = data.choices?.[0]?.message?.content || "⚠️ Local AI silent.";
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ reply }));
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ reply: "❌ Error processing AI request." }));
       }
-
-      // Call OpenAI Chat API
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: message }]
-        })
-      });
-
-      const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content || "⚠️ No response from AI.";
-      res.json({ reply });
-    }
-
-    else if (mode === "local") {
-      // Call Local LLM server
-      const response = await fetch(LOCAL_LLM_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "local-llm",
-          messages: [{ role: "user", content: message }]
-        })
-      });
-
-      const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content || "⚠️ Local AI gave no response.";
-      res.json({ reply });
-    }
-
-    else {
-      res.json({ reply: "❌ Unknown AI mode." });
-    }
-  } catch (err) {
-    console.error("AI error:", err);
-    res.json({ reply: "❌ Error contacting AI." });
+    });
+  } else {
+    res.writeHead(404);
+    res.end();
   }
-});
-
-// Start express server on port 3030
-server.listen(3030, () => {
+}).listen(3030, () => {
   console.log("✅ AI server running on http://localhost:3030/ai");
 });
