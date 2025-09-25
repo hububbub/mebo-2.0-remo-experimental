@@ -1,130 +1,61 @@
 // === Utility ===
-function sendCommand(endpoint) {
+function sendCommand(endpoint, duration = 0) {
   fetch(`http://192.168.10.1/${endpoint}`)
     .then(() => console.log("Sent:", endpoint))
     .catch(err => console.error("Error sending command:", err));
-}
 
-// === Default Shortcuts ===
-let keyBindings = {
-  forward: "w",
-  backward: "s",
-  left: "a",
-  right: "d",
-  armUp: "ArrowUp",
-  armDown: "ArrowDown",
-  clawOpen: "o",
-  clawClose: "c",
-  camUp: "PageUp",
-  camDown: "PageDown"
-};
-
-// Load saved shortcuts
-if (localStorage.getItem("meboKeyBindings")) {
-  keyBindings = JSON.parse(localStorage.getItem("meboKeyBindings"));
-}
-
-// === Update Key Table ===
-function refreshKeyTable() {
-  document.querySelectorAll(".keyCell").forEach(cell => {
-    const action = cell.dataset.action;
-    cell.textContent = keyBindings[action];
-  });
-}
-refreshKeyTable();
-
-// === Rebinding Logic ===
-document.querySelectorAll(".keyCell").forEach(cell => {
-  cell.addEventListener("click", () => {
-    cell.textContent = "Press a key...";
-    const listener = (e) => {
-      keyBindings[cell.dataset.action] = e.key;
-      localStorage.setItem("meboKeyBindings", JSON.stringify(keyBindings));
-      refreshKeyTable();
-      document.removeEventListener("keydown", listener, true);
-    };
-    document.addEventListener("keydown", listener, true);
-  });
-});
-
-// === Keyboard Shortcuts ===
-document.addEventListener("keydown", (e) => {
-  switch (e.key) {
-    case keyBindings.forward: sendCommand("moveForward"); break;
-    case keyBindings.backward: sendCommand("moveBackward"); break;
-    case keyBindings.left: sendCommand("turnLeft"); break;
-    case keyBindings.right: sendCommand("turnRight"); break;
-    case keyBindings.armUp: sendCommand("armUp"); break;
-    case keyBindings.armDown: sendCommand("armDown"); break;
-    case keyBindings.clawOpen: sendCommand("clawOpen"); break;
-    case keyBindings.clawClose: sendCommand("clawClose"); break;
-    case keyBindings.camUp: sendCommand("camUp"); break;
-    case keyBindings.camDown: sendCommand("camDown"); break;
+  if (duration > 0) {
+    setTimeout(() => {
+      fetch(`http://192.168.10.1/stop`)
+        .then(() => console.log("Stopped after", duration))
+        .catch(err => console.error("Error stopping:", err));
+    }, duration);
   }
-});
+}
 
-// === Button Clicks ===
-document.getElementById("forwardBtn").onclick = () => sendCommand("moveForward");
-document.getElementById("backwardBtn").onclick = () => sendCommand("moveBackward");
-document.getElementById("leftBtn").onclick = () => sendCommand("turnLeft");
-document.getElementById("rightBtn").onclick = () => sendCommand("turnRight");
-document.getElementById("armUpBtn").onclick = () => sendCommand("armUp");
-document.getElementById("armDownBtn").onclick = () => sendCommand("armDown");
-document.getElementById("clawOpenBtn").onclick = () => sendCommand("clawOpen");
-document.getElementById("clawCloseBtn").onclick = () => sendCommand("clawClose");
-document.getElementById("camUpBtn").onclick = () => sendCommand("camUp");
-document.getElementById("camDownBtn").onclick = () => sendCommand("camDown");
-
-// === Video Feed ===
-document.getElementById("videoFeed").src = "http://192.168.10.1:8080/?action=stream";
-
-// === Audio Feed ===
-document.getElementById("meboAudio").src = "http://192.168.10.1:8080/audio";
-
-// === TTS ===
-document.getElementById("speakBtn").onclick = () => {
-  const text = document.getElementById("ttsInput").value;
-  if (!text) return;
-  console.log("Speaking:", text);
-  // TODO: TTS → send to robot speaker
-};
-
-// === Mic Streaming ===
-let micActive = false;
-let micStream = null;
-document.getElementById("micBtn").onclick = async () => {
-  if (!micActive) {
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // TODO: send micStream to robot’s speaker endpoint
-      document.getElementById("micBtn").textContent = "🎤 Mic (On)";
-      micActive = true;
-    } catch (err) {
-      console.error("Mic error:", err);
-    }
-  } else {
-    if (micStream) {
-      micStream.getTracks().forEach(track => track.stop());
-    }
-    document.getElementById("micBtn").textContent = "🎤 Mic (Off)";
-    micActive = false;
+// === JSON Command Executor ===
+async function executeCommand(obj) {
+  if (obj.action) {
+    const action = obj.action;
+    const duration = obj.duration || 0;
+    sendCommand(action, duration);
+    return `[Executed: ${action}${duration ? " for " + duration + "ms" : ""}]`;
   }
-};
 
-// === AI Assistant ===
-function tryExecuteJSONCommand(text) {
+  if (obj.sequence && Array.isArray(obj.sequence)) {
+    for (let step of obj.sequence) {
+      const action = step.action;
+      const duration = step.duration || 0;
+      sendCommand(action, duration);
+      await new Promise(res => setTimeout(res, duration + 500)); // wait before next
+    }
+    return `[Executed sequence of ${obj.sequence.length} steps]`;
+  }
+
+  return "[Unknown command format]";
+}
+
+// === AI Parser ===
+async function tryExecuteJSONCommand(text) {
   try {
     const json = JSON.parse(text);
-    if (json.action) {
-      sendCommand(json.action);
-      return `[Executed action: ${json.action}]`;
-    }
+    return await executeCommand(json);
   } catch (e) {
+    // Not pure JSON? try extracting { ... } inside text
+    const match = text.match(/\{.*\}/s);
+    if (match) {
+      try {
+        const json = JSON.parse(match[0]);
+        return await executeCommand(json);
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
-  return null;
 }
 
+// === AI Assistant ===
 document.getElementById("sendAiBtn").onclick = async () => {
   const mode = document.getElementById("aiMode").value;
   const query = document.getElementById("aiInput").value;
@@ -136,14 +67,19 @@ document.getElementById("sendAiBtn").onclick = async () => {
 
   let reply;
   if (mode === "online") {
-    // Placeholder: replace with actual OpenAI API call
-    reply = `{ "action": "moveForward" }`; // simulate response
+    // TODO: Replace with OpenAI call
+    reply = `{
+      "sequence": [
+        { "action": "moveForward", "duration": 1500 },
+        { "action": "turnRight", "duration": 1000 },
+        { "action": "clawOpen", "duration": 500 }
+      ]
+    }`;
   } else {
-    reply = "Sure, I'll move backward! {\"action\":\"moveBackward\"}";
+    reply = "Okay, I'll try a move. {\"action\":\"moveBackward\",\"duration\":2000}";
   }
 
-  // Check for JSON command inside reply
-  const executed = tryExecuteJSONCommand(reply);
+  const executed = await tryExecuteJSONCommand(reply);
   if (executed) {
     output.innerHTML += `<div style="color:#0af">${executed}</div>`;
   } else {
