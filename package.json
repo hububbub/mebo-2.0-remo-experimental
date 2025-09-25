@@ -9,10 +9,8 @@
   },
   "author": "Your Name",
   "license": "MIT",
-  "dependencies": {
-    "electron": "^28.0.0"
-  },
   "devDependencies": {
+    "electron": "^28.0.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
@@ -29,13 +27,13 @@
       "icon": "build/icon.icns"
     },
     "win": {
-      "target": "portable",    // ⚡ portable build instead of installer
+      "target": "portable",
       "icon": "build/icon.ico"
     },
     "linux": {
-      "target": ["AppImage"],  // AppImage = portable for Linux
-      "icon": "build/icon.png",
-      "category": "Utility"
+      "target": "AppImage",
+      "category": "Utility",
+      "icon": "build/icon.png"
     }
   }
 }
