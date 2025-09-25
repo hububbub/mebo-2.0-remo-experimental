@@ -11,13 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            os_name: Linux
-          - os: windows-latest
-            os_name: Windows
-          - os: macos-latest
-            os_name: Mac
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -26,32 +20,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build app
-        run: npm run build
-        env:
-          GH_TOKEN: ""   # prevents publish errors
+      - name: Build app (no publish)
+        run: npx electron-builder --publish never
 
-      - name: Package zip (Linux/Mac)
-        if: matrix.os != 'windows-latest'
+      - name: Package artifacts
         run: |
           cd dist
-          zip -r ../MeboControl-${{ matrix.os_name }}.zip .
-          cd ..
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            zip -r ../MeboControl-Linux.zip .
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            zip -r ../MeboControl-Mac.zip .
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            powershell Compress-Archive -Path * -DestinationPath ../MeboControl-Windows.zip
+          fi
 
-      - name: Package zip (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd dist
-          powershell Compress-Archive -Path * -DestinationPath ../MeboControl-${{ matrix.os_name }}.zip
-          cd ..
-
-      - name: Upload artifact
+      - name: Upload artifacts (zip + native installer)
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-${{ matrix.os_name }}
-          path: MeboControl-${{ matrix.os_name }}.zip
+          name: ${{ runner.os }}-build
+          path: |
+            dist/*.zip
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
