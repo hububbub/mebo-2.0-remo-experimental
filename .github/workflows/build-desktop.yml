@@ -28,16 +28,26 @@ jobs:
       - name: Build app (no publish)
         run: npx electron-builder --publish never
 
-      - name: Package artifacts
+      # Linux packaging
+      - name: Package artifacts (Linux)
+        if: runner.os == 'Linux'
         run: |
           cd dist
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            zip -r ../MeboControl-Linux.zip .
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            zip -r ../MeboControl-Mac.zip .
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            powershell Compress-Archive -Path * -DestinationPath ../MeboControl-Windows.zip
-          fi
+          zip -r ../MeboControl-Linux.zip .
+
+      # macOS packaging
+      - name: Package artifacts (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r ../MeboControl-Mac.zip .
+
+      # Windows packaging
+      - name: Package artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd dist
+          powershell Compress-Archive -Path * -DestinationPath ../MeboControl-Windows.zip
 
       - name: Upload artifacts (zip + native installer)
         uses: actions/upload-artifact@v4
