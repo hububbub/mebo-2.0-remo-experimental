@@ -28,8 +28,26 @@ jobs:
       - name: Build app
         run: npm run build
 
-      - name: Upload artifacts
+      # Windows portable exe
+      - name: Upload Windows exe
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: Mebo-Control-${{ matrix.os }}
-          path: dist/*
+          name: Mebo-Control-Windows.exe
+          path: dist/*.exe
+
+      # macOS dmg
+      - name: Upload macOS dmg
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mebo-Control-macOS.dmg
+          path: dist/*.dmg
+
+      # Linux AppImage
+      - name: Upload Linux AppImage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mebo-Control-Linux.AppImage
+          path: dist/*.AppImage
