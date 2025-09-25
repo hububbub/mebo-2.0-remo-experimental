@@ -1,168 +1,116 @@
 // renderer.js
 
-// Replace with your robot’s IP address
-const MEBO_IP = "192.168.10.1";
-const MEBO_URL = `http://${MEBO_IP}:80/`;
-
-// === UI ELEMENTS === //
-const forwardBtn = document.getElementById("forwardBtn");
-const backBtn = document.getElementById("backBtn");
-const leftBtn = document.getElementById("leftBtn");
-const rightBtn = document.getElementById("rightBtn");
-
-// Arm / claw / camera
-const armUpBtn = document.getElementById("armUpBtn");
-const armDownBtn = document.getElementById("armDownBtn");
-const clawOpenBtn = document.getElementById("clawOpenBtn");
-const clawCloseBtn = document.getElementById("clawCloseBtn");
-const camUpBtn = document.getElementById("camUpBtn");
-const camDownBtn = document.getElementById("camDownBtn");
-
-// Settings
-const speedSlider = document.getElementById("speedSlider");
-
-// Audio / TTS
-const speakBtn = document.getElementById("speakBtn");
-const ttsInput = document.getElementById("ttsInput");
-const micBtn = document.getElementById("micBtn");
-const volumeSlider = document.getElementById("volumeSlider");
-
-// AI tab
-const aiToggle = document.getElementById("aiToggle"); // local/online
-const aiChatInput = document.getElementById("aiChatInput");
-const aiSendBtn = document.getElementById("aiSendBtn");
-const aiOutput = document.getElementById("aiOutput");
-
-// === STATE === //
-let speed = localStorage.getItem("meboSpeed") || 5;
-if (speedSlider) speedSlider.value = speed;
-
-let usingAI = "online"; // default
-let audioContext, micStream, micSource, speaker;
-
-// === HELPERS === //
-async function sendCommand(command) {
-  try {
-    const res = await fetch(`${MEBO_URL}${command}`);
-    console.log("Sent:", command, "Response:", res.status);
-  } catch (err) {
-    console.error("Command failed:", command, err.message);
-  }
+// ============ BUTTON + KEYBOARD CONTROL ============
+function sendCommand(endpoint) {
+  fetch(`http://192.168.10.1:80/${endpoint}`)
+    .then(() => console.log("Sent command:", endpoint))
+    .catch(err => console.error("Command error:", err));
 }
 
-// === MOVEMENT === //
-if (forwardBtn) forwardBtn.addEventListener("click", () => sendCommand(`cmd=move&dir=fwd&spd=${speed}`));
-if (backBtn) backBtn.addEventListener("click", () => sendCommand(`cmd=move&dir=rev&spd=${speed}`));
-if (leftBtn) leftBtn.addEventListener("click", () => sendCommand(`cmd=move&dir=left&spd=${speed}`));
-if (rightBtn) rightBtn.addEventListener("click", () => sendCommand(`cmd=move&dir=right&spd=${speed}`));
+// Movement buttons
+document.getElementById("forwardBtn")?.addEventListener("click", () => sendCommand("move?dir=forward"));
+document.getElementById("backwardBtn")?.addEventListener("click", () => sendCommand("move?dir=backward"));
+document.getElementById("leftBtn")?.addEventListener("click", () => sendCommand("move?dir=left"));
+document.getElementById("rightBtn")?.addEventListener("click", () => sendCommand("move?dir=right"));
 
-// Speed setting
-if (speedSlider) {
-  speedSlider.addEventListener("input", (e) => {
-    speed = e.target.value;
-    localStorage.setItem("meboSpeed", speed);
-  });
-}
+// Arm + claw
+document.getElementById("armUpBtn")?.addEventListener("click", () => sendCommand("arm?dir=up"));
+document.getElementById("armDownBtn")?.addEventListener("click", () => sendCommand("arm?dir=down"));
+document.getElementById("clawOpenBtn")?.addEventListener("click", () => sendCommand("claw?dir=open"));
+document.getElementById("clawCloseBtn")?.addEventListener("click", () => sendCommand("claw?dir=close"));
 
-// === ARM + CLAW === //
-if (armUpBtn) armUpBtn.addEventListener("click", () => sendCommand(`cmd=arm&dir=up&spd=${speed}`));
-if (armDownBtn) armDownBtn.addEventListener("click", () => sendCommand(`cmd=arm&dir=down&spd=${speed}`));
-if (clawOpenBtn) clawOpenBtn.addEventListener("click", () => sendCommand("cmd=claw&action=open"));
-if (clawCloseBtn) clawCloseBtn.addEventListener("click", () => sendCommand("cmd=claw&action=close"));
-if (camUpBtn) camUpBtn.addEventListener("click", () => sendCommand("cmd=cam&dir=up"));
-if (camDownBtn) camDownBtn.addEventListener("click", () => sendCommand("cmd=cam&dir=down"));
+// Camera tilt
+document.getElementById("camUpBtn")?.addEventListener("click", () => sendCommand("cam?dir=up"));
+document.getElementById("camDownBtn")?.addEventListener("click", () => sendCommand("cam?dir=down"));
 
-// === KEYBOARD SHORTCUTS === //
+// Keyboard mapping
 document.addEventListener("keydown", (e) => {
   switch (e.key.toLowerCase()) {
-    case "w": sendCommand(`cmd=move&dir=fwd&spd=${speed}`); break;
-    case "s": sendCommand(`cmd=move&dir=rev&spd=${speed}`); break;
-    case "a": sendCommand(`cmd=move&dir=left&spd=${speed}`); break;
-    case "d": sendCommand(`cmd=move&dir=right&spd=${speed}`); break;
-
-    // Arm / claw / camera
-    case "i": sendCommand(`cmd=arm&dir=up&spd=${speed}`); break;
-    case "k": sendCommand(`cmd=arm&dir=down&spd=${speed}`); break;
-    case "j": sendCommand("cmd=claw&action=open"); break;
-    case "l": sendCommand("cmd=claw&action=close"); break;
-    case "u": sendCommand("cmd=cam&dir=up"); break;
-    case "o": sendCommand("cmd=cam&dir=down"); break;
+    case "w": sendCommand("move?dir=forward"); break;
+    case "s": sendCommand("move?dir=backward"); break;
+    case "a": sendCommand("move?dir=left"); break;
+    case "d": sendCommand("move?dir=right"); break;
+    case "u": sendCommand("arm?dir=up"); break;
+    case "j": sendCommand("arm?dir=down"); break;
+    case "o": sendCommand("claw?dir=open"); break;
+    case "p": sendCommand("claw?dir=close"); break;
+    case "i": sendCommand("cam?dir=up"); break;
+    case "k": sendCommand("cam?dir=down"); break;
   }
 });
 
-// === TEXT-TO-SPEECH === //
-if (speakBtn && ttsInput) {
-  speakBtn.addEventListener("click", async () => {
-    const text = ttsInput.value.trim();
-    if (!text) return;
-    await sendCommand(`cmd=speak&text=${encodeURIComponent(text)}`);
-  });
-}
+// ============ VIDEO STREAM ============
+document.getElementById("videoFeed").src = "http://192.168.10.1:80/stream";
 
-// === MIC STREAMING === //
-if (micBtn) {
-  micBtn.addEventListener("mousedown", async () => {
-    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    micSource = audioContext.createMediaStreamSource(micStream);
-    // TODO: encode and stream PCM/WAV chunks to Mebo speaker endpoint
-    console.log("Mic streaming started...");
-  });
+// ============ AUDIO STREAM ============
+const audioElement = document.getElementById("meboAudio");
+audioElement.src = "http://192.168.10.1:80/audio"; // replace if different
+audioElement.volume = 0.7;
 
-  micBtn.addEventListener("mouseup", () => {
-    if (micStream) {
-      micStream.getTracks().forEach(track => track.stop());
-      console.log("Mic streaming stopped.");
+// ============ TTS (send text to speaker) ============
+document.getElementById("speakBtn")?.addEventListener("click", () => {
+  const text = document.getElementById("ttsInput").value;
+  if (!text) return;
+  fetch(`http://192.168.10.1:80/speak?text=${encodeURIComponent(text)}`)
+    .catch(err => console.error("TTS error:", err));
+});
+
+// ============ MIC STREAM (send voice live to Mebo speaker) ============
+let micStream, micRecorder;
+const micBtn = document.getElementById("micBtn");
+
+micBtn?.addEventListener("click", async () => {
+  if (micRecorder) {
+    micRecorder.stop();
+    micRecorder = null;
+    micBtn.innerText = "🎤 Mic (Off)";
+    return;
+  }
+
+  micBtn.innerText = "🎤 Mic (On)";
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  const audioCtx = new AudioContext();
+  const source = audioCtx.createMediaStreamSource(micStream);
+  const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+  processor.onaudioprocess = (e) => {
+    const inputData = e.inputBuffer.getChannelData(0);
+    // Convert float to 16-bit PCM
+    const buffer = new ArrayBuffer(inputData.length * 2);
+    const view = new DataView(buffer);
+    for (let i = 0; i < inputData.length; i++) {
+      const s = Math.max(-1, Math.min(1, inputData[i]));
+      view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
-  });
-}
+    // Send raw audio chunk
+    fetch("http://192.168.10.1:80/mic", {
+      method: "POST",
+      body: buffer
+    }).catch(err => console.error("Mic stream error:", err));
+  };
 
-// === AUDIO FROM MEBO MIC === //
-async function startMeboAudio() {
-  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const audio = new Audio(`${MEBO_URL}audio`); // replace with real endpoint
-  audio.crossOrigin = "anonymous";
-  const track = audioContext.createMediaElementSource(audio);
-  speaker = audioContext.createGain();
-  track.connect(speaker).connect(audioContext.destination);
-  audio.play();
-  console.log("Mebo mic audio playing...");
-}
-if (volumeSlider) {
-  volumeSlider.addEventListener("input", (e) => {
-    if (speaker) speaker.gain.value = e.target.value;
-  });
-}
+  source.connect(processor);
+  processor.connect(audioCtx.destination);
+  micRecorder = processor;
+});
 
-// === AI TAB === //
-if (aiToggle) {
-  aiToggle.addEventListener("change", (e) => {
-    usingAI = e.target.value;
-    console.log("AI mode set:", usingAI);
-  });
-}
+// ============ AI TAB ============
+document.getElementById("sendAiBtn")?.addEventListener("click", async () => {
+  const msg = document.getElementById("aiInput").value;
+  const mode = document.getElementById("aiMode").value; // "online" or "local"
 
-if (aiSendBtn && aiChatInput) {
-  aiSendBtn.addEventListener("click", async () => {
-    const text = aiChatInput.value.trim();
-    if (!text) return;
-    aiOutput.innerText += `You: ${text}\n`;
+  try {
+    const res = await fetch("http://localhost:3030/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, mode })
+    });
 
-    try {
-      if (usingAI === "online") {
-        // Example: call local backend (main.js) instead of direct OpenAI here
-        const res = await fetch("http://localhost:3000/ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-        const data = await res.json();
-        aiOutput.innerText += `Mebo AI: ${data.reply}\n`;
-      } else {
-        aiOutput.innerText += "Local AI: (stub reply)\n";
-      }
-    } catch (err) {
-      aiOutput.innerText += "Error talking to AI.\n";
-    }
-  });
-}
+    const data = await res.json();
+    document.getElementById("aiOutput").innerText = data.reply;
+  } catch (err) {
+    console.error("AI error:", err);
+    document.getElementById("aiOutput").innerText = "❌ AI request failed.";
+  }
+});
