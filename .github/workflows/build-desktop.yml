@@ -1,19 +1,20 @@
-name: Build & Release Mebo Control App
+name: Build Desktop
 
 on:
   push:
-    tags:
-      - "v*"   # Triggers only when you push a version tag like v1.0.0
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -27,44 +28,23 @@ jobs:
       - name: Build app
         run: npm run build
 
-      # Package portable builds
-      - name: Zip Windows portable build
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd dist
-          powershell Compress-Archive -Path "Mebo Control.exe" -DestinationPath "MeboControl-Windows.zip"
-
-      - name: Zip Linux portable build
+      - name: Upload Linux AppImage
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd dist
-          zip -r MeboControl-Linux.zip *.AppImage
-
-      - name: Zip macOS build
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd dist
-          zip -r MeboControl-Mac.zip *.dmg
-
-      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: mebo-control-${{ matrix.os }}
-          path: dist/*.zip
+          name: MeboControl-Linux
+          path: dist/*.AppImage
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
+      - name: Upload macOS DMG
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v3
         with:
-          path: ./artifacts
+          name: MeboControl-macOS
+          path: dist/*.dmg
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload Windows Portable EXE
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v3
         with:
-          files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: MeboControl-Windows
+          path: dist/*.exe
