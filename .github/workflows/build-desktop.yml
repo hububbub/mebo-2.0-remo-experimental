@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -30,21 +30,21 @@ jobs:
 
       - name: Upload Linux AppImage
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MeboControl-Linux
           path: dist/*.AppImage
 
       - name: Upload macOS DMG
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MeboControl-macOS
           path: dist/*.dmg
 
       - name: Upload Windows Portable EXE
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MeboControl-Windows
           path: dist/*.exe
