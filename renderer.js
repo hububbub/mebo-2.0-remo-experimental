@@ -1,90 +1,52 @@
-// === Utility ===
-function sendCommand(endpoint, duration = 0) {
-  fetch(`http://192.168.10.1/${endpoint}`)
-    .then(() => console.log("Sent:", endpoint))
-    .catch(err => console.error("Error sending command:", err));
+// Renderer (UI logic)
+const { ipcRenderer } = require("electron");
 
-  if (duration > 0) {
-    setTimeout(() => {
-      fetch(`http://192.168.10.1/stop`)
-        .then(() => console.log("Stopped after", duration))
-        .catch(err => console.error("Error stopping:", err));
-    }, duration);
-  }
-}
+// Buttons
+document.addEventListener("DOMContentLoaded", () => {
+  const forwardBtn = document.getElementById("forward");
+  const backBtn = document.getElementById("back");
+  const leftBtn = document.getElementById("left");
+  const rightBtn = document.getElementById("right");
+  const stopBtn = document.getElementById("stop");
 
-// === JSON Command Executor ===
-async function executeCommand(obj) {
-  if (obj.action) {
-    const action = obj.action;
-    const duration = obj.duration || 0;
-    sendCommand(action, duration);
-    return `[Executed: ${action}${duration ? " for " + duration + "ms" : ""}]`;
-  }
-
-  if (obj.sequence && Array.isArray(obj.sequence)) {
-    for (let step of obj.sequence) {
-      const action = step.action;
-      const duration = step.duration || 0;
-      sendCommand(action, duration);
-      await new Promise(res => setTimeout(res, duration + 500)); // wait before next
+  // Example Mebo command (replace with actual IP/endpoint)
+  const sendCommand = async (cmd) => {
+    try {
+      const response = await fetch(`http://192.168.1.100:80/${cmd}`);
+      console.log(`Sent: ${cmd}, Status: ${response.status}`);
+    } catch (err) {
+      console.error("Command failed:", err);
     }
-    return `[Executed sequence of ${obj.sequence.length} steps]`;
-  }
+  };
 
-  return "[Unknown command format]";
-}
+  forwardBtn.onclick = () => sendCommand("move/forward");
+  backBtn.onclick = () => sendCommand("move/backward");
+  leftBtn.onclick = () => sendCommand("move/left");
+  rightBtn.onclick = () => sendCommand("move/right");
+  stopBtn.onclick = () => sendCommand("move/stop");
 
-// === AI Parser ===
-async function tryExecuteJSONCommand(text) {
-  try {
-    const json = JSON.parse(text);
-    return await executeCommand(json);
-  } catch (e) {
-    // Not pure JSON? try extracting { ... } inside text
-    const match = text.match(/\{.*\}/s);
-    if (match) {
-      try {
-        const json = JSON.parse(match[0]);
-        return await executeCommand(json);
-      } catch {
-        return null;
-      }
+  // Keyboard controls
+  document.addEventListener("keydown", (e) => {
+    switch (e.key) {
+      case "ArrowUp": sendCommand("move/forward"); break;
+      case "ArrowDown": sendCommand("move/backward"); break;
+      case "ArrowLeft": sendCommand("move/left"); break;
+      case "ArrowRight": sendCommand("move/right"); break;
+      case " ": sendCommand("move/stop"); break;
     }
-    return null;
-  }
-}
+  });
 
-// === AI Assistant ===
-document.getElementById("sendAiBtn").onclick = async () => {
-  const mode = document.getElementById("aiMode").value;
-  const query = document.getElementById("aiInput").value;
-  const output = document.getElementById("aiOutput");
-
-  if (!query) return;
-
-  output.innerHTML += `<div>> ${query}</div>`;
-
-  let reply;
-  if (mode === "online") {
-    // TODO: Replace with OpenAI call
-    reply = `{
-      "sequence": [
-        { "action": "moveForward", "duration": 1500 },
-        { "action": "turnRight", "duration": 1000 },
-        { "action": "clawOpen", "duration": 500 }
-      ]
-    }`;
-  } else {
-    reply = "Okay, I'll try a move. {\"action\":\"moveBackward\",\"duration\":2000}";
-  }
-
-  const executed = await tryExecuteJSONCommand(reply);
-  if (executed) {
-    output.innerHTML += `<div style="color:#0af">${executed}</div>`;
-  } else {
-    output.innerHTML += `<div style="color:#0af">${reply}</div>`;
-  }
-
-  output.scrollTop = output.scrollHeight;
-};
+  // Listen to menu events from main.js
+  ipcRenderer.on("open-keyboard-settings", () => {
+    alert("Keyboard settings would open here.");
+  });
+  ipcRenderer.on("open-settings", () => {
+    alert("General settings would open here.");
+  });
+  ipcRenderer.on("open-ai-settings", () => {
+    alert("AI settings would open here.");
+  });
+  ipcRenderer.on("show-about", () => {
+    alert("Mebo Control v1.0 — Portable Edition");
+  });
+});
