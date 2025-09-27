@@ -1,177 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Mebo 2.0 Control App</title>
+  <title>Mebo Control</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #eee;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #videoContainer {
-      position: relative;
-      width: 640px;
-      height: 480px;
-      background: black;
-      margin-top: 10px;
-    }
-    #videoFeed {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    #controls {
-      position: absolute;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 10px;
-    }
-    .btn {
-      padding: 10px 15px;
-      background: #444;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      cursor: pointer;
-      margin: 2px;
-    }
-    .btn:hover { background: #666; }
-    #settings, #aiTab, #shortcutsTab {
-      margin-top: 20px;
-      padding: 15px;
-      background: #222;
-      border-radius: 8px;
-      width: 640px;
-    }
-    #ttsInput, #aiInput {
-      width: 80%;
-      padding: 6px;
-    }
-    #speakBtn, #sendAiBtn {
-      padding: 7px 12px;
-    }
-    #aiOutput {
-      background: #000;
-      color: #0f0;
-      padding: 10px;
-      margin-top: 10px;
-      height: 100px;
-      overflow-y: auto;
-      font-family: monospace;
-      border-radius: 5px;
-    }
-    #volumeControl {
-      width: 200px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 6px;
-      border-bottom: 1px solid #333;
-      text-align: left;
-    }
-    .keyCell {
-      background: #333;
-      padding: 5px;
-      border-radius: 4px;
-      text-align: center;
-      cursor: pointer;
-    }
-    .keyCell:hover {
-      background: #555;
-    }
+    body { font-family: sans-serif; text-align: center; margin: 20px; }
+    h1 { margin-bottom: 20px; }
+    .controls { display: grid; grid-template-columns: 100px 100px 100px; gap: 10px; justify-content: center; }
+    button { padding: 15px; font-size: 16px; cursor: pointer; border-radius: 8px; }
+    #stop { background: red; color: white; grid-column: span 3; }
   </style>
 </head>
 <body>
-  <h1>Mebo 2.0 Control App</h1>
+  <h1>Mebo Control</h1>
+  <div class="controls">
+    <div></div>
+    <button id="forward">▲</button>
+    <div></div>
 
-  <!-- Live Video -->
-  <div id="videoContainer">
-    <img id="videoFeed" src="" alt="Mebo Camera Feed">
-    <div id="controls">
-      <div>
-        <button class="btn" id="forwardBtn">↑ Forward</button>
-        <button class="btn" id="backwardBtn">↓ Backward</button>
-        <button class="btn" id="leftBtn">← Left</button>
-        <button class="btn" id="rightBtn">→ Right</button>
-      </div>
-      <div>
-        <button class="btn" id="armUpBtn">Arm ↑</button>
-        <button class="btn" id="armDownBtn">Arm ↓</button>
-        <button class="btn" id="clawOpenBtn">Claw Open</button>
-        <button class="btn" id="clawCloseBtn">Claw Close</button>
-        <button class="btn" id="camUpBtn">Cam ↑</button>
-        <button class="btn" id="camDownBtn">Cam ↓</button>
-      </div>
-    </div>
-  </div>
+    <button id="left">◀</button>
+    <button id="stop">STOP</button>
+    <button id="right">▶</button>
 
-  <!-- Audio stream -->
-  <div style="margin-top:10px;">
-    <audio id="meboAudio" controls autoplay></audio>
-    <br>
-    Volume: <input type="range" id="volumeControl" min="0" max="1" step="0.05" value="0.7">
-  </div>
-
-  <!-- TTS and Mic -->
-  <div id="settings">
-    <h3>Speech Controls</h3>
-    <input type="text" id="ttsInput" placeholder="Type text to speak">
-    <button class="btn" id="speakBtn">Speak</button>
-    <button class="btn" id="micBtn">🎤 Mic (Off)</button>
-  </div>
-
-  <!-- AI Tab -->
-  <div id="aiTab">
-    <h3>AI Assistant</h3>
-    <select id="aiMode">
-      <option value="online">🌐 Online (OpenAI)</option>
-      <option value="local">💻 Local LLM</option>
-    </select>
-    <br><br>
-    <input type="text" id="aiInput" placeholder="Ask AI something...">
-    <button class="btn" id="sendAiBtn">Send</button>
-    <div id="aiOutput"></div>
-  </div>
-
-  <!-- Keyboard Shortcuts Tab -->
-  <div id="shortcutsTab">
-    <h3>Keyboard Shortcuts</h3>
-    <p>Click on a key field to change the shortcut.</p>
-    <table>
-      <tr><th>Action</th><th>Key</th></tr>
-      <tr><td>Move Forward</td><td class="keyCell" data-action="forward">W</td></tr>
-      <tr><td>Move Backward</td><td class="keyCell" data-action="backward">S</td></tr>
-      <tr><td>Turn Left</td><td class="keyCell" data-action="left">A</td></tr>
-      <tr><td>Turn Right</td><td class="keyCell" data-action="right">D</td></tr>
-      <tr><td>Arm Up</td><td class="keyCell" data-action="armUp">ArrowUp</td></tr>
-      <tr><td>Arm Down</td><td class="keyCell" data-action="armDown">ArrowDown</td></tr>
-      <tr><td>Claw Open</td><td class="keyCell" data-action="clawOpen">O</td></tr>
-      <tr><td>Claw Close</td><td class="keyCell" data-action="clawClose">C</td></tr>
-      <tr><td>Camera Up</td><td class="keyCell" data-action="camUp">PageUp</td></tr>
-      <tr><td>Camera Down</td><td class="keyCell" data-action="camDown">PageDown</td></tr>
-    </table>
+    <div></div>
+    <button id="back">▼</button>
+    <div></div>
   </div>
 
   <script src="renderer.js"></script>
-  <script>
-    // Volume control sync
-    const audioEl = document.getElementById("meboAudio");
-    document.getElementById("volumeControl").addEventListener("input", (e) => {
-      audioEl.volume = e.target.value;
-    });
-  </script>
 </body>
 </html>
