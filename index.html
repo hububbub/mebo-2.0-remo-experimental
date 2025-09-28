@@ -1,136 +1,46 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Mebo Control (Windows + Linux)</title>
-  <style>
-    body { font-family: Arial, sans-serif; color: #eee; background: #111; margin: 0; padding: 12px; }
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; }
-    header h1 { margin: 0; font-size: 18px; }
-    .main { display:flex; gap: 12px; }
-    .left, .right { background:#1b1b1b; padding:10px; border-radius:8px; }
-    .left { flex: 1; min-width: 420px; }
-    .right { width: 380px; }
-    .controls { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
-    button { padding: 10px; border-radius:6px; background:#333; color:#fff; border:none; cursor:pointer; }
-    input[type=text], select, textarea { width:100%; padding:6px; border-radius:6px; border:1px solid #333; background:#0f0f0f; color:#fff; }
-    label { display:block; margin:6px 0 2px; font-size:13px; }
-    .small { font-size:12px; color:#aaa; margin-top:6px; }
-    #logPanel { height:160px; overflow:auto; background:#000; padding:8px; border-radius:6px; font-family:monospace; font-size:12px; }
-    table { width:100%; border-collapse:collapse; }
-    .keyCell { background:#222; padding:6px; border-radius:4px; text-align:center; cursor:pointer; display:inline-block; min-width:60px; }
-  </style>
+<meta charset="UTF-8">
+<title>Mebo Control App</title>
+<style>
+  body { margin:0; font-family: sans-serif; background: #111; color: #eee; }
+  #controls { position:absolute; bottom:10px; left:10px; right:10px; display:flex; gap:10px; justify-content:center; }
+  button { padding:10px; font-size:14px; }
+  #videoWrapper { position:absolute; top:0; left:0; right:0; bottom:0; overflow:hidden; }
+  #liveVideo { width:100%; height:100%; object-fit:cover; }
+  #settings { position:absolute; top:10px; right:10px; background:#222; padding:10px; border-radius:5px; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Mebo Control — Windows & Linux</h1>
-    <div>
-      <button id="toggleLog">Show Log</button>
-      <button id="exportLog">Export Log</button>
-    </div>
-  </header>
+<div id="videoWrapper">
+  <video id="liveVideo" autoplay muted></video>
+  <audio id="liveAudio" autoplay></audio>
+</div>
 
-  <div class="main">
-    <div class="left">
-      <h3>Live Camera</h3>
-      <img id="cameraPreview" src="" alt="camera" style="width:100%; height:240px; object-fit:cover; border-radius:6px; background:#000;">
-      <div style="margin-top:8px;">
-        <label>Movement</label>
-        <div class="controls">
-          <button id="btnForward">Forward ↑</button>
-          <button id="btnLeft">Left ◀</button>
-          <button id="btnRight">Right ▶</button>
-          <button id="btnBackward">Backward ↓</button>
-          <button id="btnArmUp">Arm ▲</button>
-          <button id="btnArmDown">Arm ▼</button>
-          <button id="btnClawOpen">Claw Open</button>
-          <button id="btnClawClose">Claw Close</button>
-        </div>
-      </div>
+<div id="controls">
+  <button id="forward">Forward</button>
+  <button id="backward">Backward</button>
+  <button id="left">Left</button>
+  <button id="right">Right</button>
+  <button id="up">Arm Up</button>
+  <button id="down">Arm Down</button>
+  <button id="open">Claw Open</button>
+  <button id="close">Claw Close</button>
+  <button id="turn">Claw Turn</button>
+</div>
 
-      <div style="margin-top:12px;">
-        <h3>AI Assistant</h3>
-        <label>Mode</label>
-        <select id="aiMode">
-          <option value="online">Online (OpenAI)</option>
-          <option value="local">Local</option>
-        </select>
-        <label>Question</label>
-        <input id="aiInput" type="text" placeholder="Ask the AI...">
-        <div style="margin-top:8px; display:flex; gap:8px;">
-          <button id="aiSend">Send</button>
-        </div>
-        <label style="margin-top:8px">AI Output</label>
-        <textarea id="aiOutput" readonly style="height:100px;"></textarea>
-      </div>
-    </div>
+<div id="settings">
+  <label>Speed: <input type="range" id="speedSlider" min="0" max="100"></label>
+  <br>
+  <label>Volume: <input type="range" id="volumeSlider" min="0" max="100" value="50"></label>
+  <br>
+  <label>AI Mode: <input type="checkbox" id="aiToggle"></label>
+  <br>
+  <input type="text" id="ttsInput" placeholder="Text to speak">
+  <button id="speakBtn">Speak</button>
+</div>
 
-    <div class="right">
-      <h3>Settings & Controls</h3>
-
-      <label>Robot base URL</label>
-      <input id="baseUrl" type="text" placeholder="http://192.168.10.1:80">
-
-      <label>Endpoint: Move (use __dir__ and __speed__ placeholders)</label>
-      <input id="endpointMove" type="text" value="move?dir=__dir__&spd=__speed__">
-
-      <label>Endpoint: Arm</label>
-      <input id="endpointArm" type="text" value="arm?dir=__dir__">
-
-      <label>Endpoint: Claw</label>
-      <input id="endpointClaw" type="text" value="claw?action=__action__">
-
-      <label>Endpoint: Camera stream path</label>
-      <input id="endpointStream" type="text" value="stream">
-
-      <label>Endpoint: Speak (optional)</label>
-      <input id="endpointSpeak" type="text" value="speak?text=__text__">
-
-      <label>Endpoint: Mic POST path (optional)</label>
-      <input id="endpointMic" type="text" value="mic">
-
-      <label>Default movement speed</label>
-      <input id="speed" type="number" min="1" max="10" value="5">
-
-      <div style="margin-top:8px; display:flex; gap:8px;">
-        <button id="saveConfig">Save Settings</button>
-      </div>
-
-      <h3 style="margin-top:12px">Keyboard Shortcuts</h3>
-      <table>
-        <tr><td>Forward</td><td><span class="keyCell" data-action="forward">w</span></td></tr>
-        <tr><td>Backward</td><td><span class="keyCell" data-action="backward">s</span></td></tr>
-        <tr><td>Left</td><td><span class="keyCell" data-action="left">a</span></td></tr>
-        <tr><td>Right</td><td><span class="keyCell" data-action="right">d</span></td></tr>
-        <tr><td>Arm Up</td><td><span class="keyCell" data-action="armUp">i</span></td></tr>
-        <tr><td>Arm Down</td><td><span class="keyCell" data-action="armDown">k</span></td></tr>
-        <tr><td>Claw Open</td><td><span class="keyCell" data-action="clawOpen">o</span></td></tr>
-        <tr><td>Claw Close</td><td><span class="keyCell" data-action="clawClose">p</span></td></tr>
-        <tr><td>Camera Up</td><td><span class="keyCell" data-action="camUp">u</span></td></tr>
-        <tr><td>Camera Down</td><td><span class="keyCell" data-action="camDown">j</span></td></tr>
-      </table>
-
-      <h3 style="margin-top:12px">Text-to-Speech</h3>
-      <input id="ttsInput" type="text" placeholder="Type text to play on robot or locally">
-      <div style="margin-top:8px;">
-        <button id="speakBtn">Speak</button>
-        <button id="micBtn">Toggle Mic Stream</button>
-      </div>
-
-      <div style="margin-top:12px;">
-        <button id="exportConfig">Export config.json</button>
-      </div>
-
-      <div style="margin-top:12px;">
-        <small class="small">Note: update the base URL to your Mebo robot's IP when connected to its Wi-Fi.</small>
-      </div>
-
-      <div id="logPanel" style="display:none; margin-top:12px;">
-        <div id="logArea"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="renderer.js"></script>
+<script src="renderer.js"></script>
 </body>
 </html>
