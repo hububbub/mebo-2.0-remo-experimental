@@ -1,43 +1,43 @@
-name: Build MeboControl (Win+Linux)
+name: Build Desktop App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      # No npm install needed since node_modules is committed!
+      - name: Verify package.json + node_modules
+        run: |
+          echo "Checking repo contents..."
+          ls -la
 
-      - name: Install (ci)
-        run: npm ci
-
-      - name: Build (portable, no publish)
+      - name: Build app
         run: npm run build
 
-      - name: Upload Linux AppImage
+      - name: Archive Linux AppImage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-Linux.AppImage
+          name: MeboControl-Linux
           path: dist/*.AppImage
 
-      - name: Upload Windows EXE
+      - name: Archive Windows Portable
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-Windows.exe
+          name: MeboControl-Windows
           path: dist/*.exe
