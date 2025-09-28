@@ -2,41 +2,37 @@ name: Build Desktop App
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      # 1. Checkout repo
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # 4. Extract version from package.json
       - name: Get app version
         id: get_version
         run: |
-          echo "APP_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+          node -e "const pkg=require('./package.json'); console.log('APP_VERSION='+pkg.version);" > version.txt
+          set /p APP_VERSION=<version.txt
+          echo "APP_VERSION=%APP_VERSION%" >> $GITHUB_ENV
 
-      # 5. Build Windows portable app
-      - name: Build Windows portable EXE
-        run: npx electron-builder --win --x64 --portable
+      - name: Build Windows portable
+        run: |
+          npx electron-builder --win --x64 --portable --projectDir .
 
-      # 6. Upload artifact with version in name
-      - name: Upload Windows artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mebo-control-windows-${{ env.APP_VERSION }}
+          name: MeboControl-Windows-${{ env.APP_VERSION }}
           path: dist/*.exe
