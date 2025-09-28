@@ -1,40 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Mebo Control</title>
-<style>
-body{margin:0;font-family:sans-serif;background:#111;color:#fff;}
-#video-feed{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
-#controls{position:absolute;bottom:10px;width:100%;display:flex;justify-content:center;gap:5px;flex-wrap:wrap;}
-button,input{padding:10px;font-size:16px;}
-#settings{position:absolute;top:10px;right:10px;background:#222;padding:10px;}
-</style>
+  <meta charset="UTF-8">
+  <title>Mebo Control App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; background:#222; color:#eee; }
+    header { background:#111; padding:10px; display:flex; justify-content:space-between; }
+    header div { display:flex; gap:10px; }
+    #camera-feed { width:100%; height:400px; background:#000; display:block; margin:10px auto; }
+    .controls { display:flex; justify-content:center; gap:10px; margin:10px auto; }
+    button { padding:10px 20px; font-size:16px; cursor:pointer; }
+    #settings-modal, #keyboard-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+                                        background:#333; padding:20px; border-radius:10px; z-index:10; color:#eee; }
+    label { display:block; margin-top:10px; }
+    input[type=text], input[type=number] { width:100%; padding:5px; margin-top:5px; }
+    #ai-tab { display:flex; gap:10px; margin:10px; }
+    #robot-audio { display:none; }
+    #volume-container { position:fixed; bottom:10px; right:10px; background:#111; padding:5px; border-radius:5px; }
+  </style>
 </head>
 <body>
-<video id="video-feed" autoplay></video>
+  <header>
+    <div>
+      <button id="file-menu">File</button>
+      <button id="edit-menu">Edit</button>
+      <button id="view-menu">View</button>
+      <button id="window-menu">Window</button>
+      <button id="help-menu">Help</button>
+    </div>
+    <div>
+      <button id="settings-menu">Settings</button>
+      <button id="keyboard-menu">Keyboard Shortcuts</button>
+      <button id="ai-menu">AI</button>
+    </div>
+  </header>
 
-<div id="controls">
-<button id="forward">Forward</button>
-<button id="backward">Backward</button>
-<button id="left">Left</button>
-<button id="right">Right</button>
-<button id="arm-up">Arm Up</button>
-<button id="arm-down">Arm Down</button>
-<button id="claw-open">Claw Open</button>
-<button id="claw-close">Claw Close</button>
-<button id="claw-turn">Claw Turn</button>
-<button id="mic-btn">Mic</button>
-<input type="text" id="tts-text" placeholder="Enter text">
-<button id="tts-send">Speak</button>
-</div>
+  <video id="camera-feed" autoplay></video>
 
-<div id="settings">
-Speed: <input type="number" id="speed" min="1" max="100" value="50"><br>
-Volume: <input type="range" id="volume" min="0" max="100" value="50"><br>
-AI Mode: <input type="checkbox" id="ai-toggle"><br>
-<button id="save-settings">Save</button>
-</div>
-<script src="renderer.js"></script>
+  <div class="controls">
+    <button id="forward">↑ Forward</button>
+    <button id="backward">↓ Backward</button>
+    <button id="left">← Left</button>
+    <button id="right">→ Right</button>
+  </div>
+
+  <div class="controls">
+    <button id="armUp">Arm Up</button>
+    <button id="armDown">Arm Down</button>
+    <button id="clawOpen">Claw Open</button>
+    <button id="clawClose">Claw Close</button>
+  </div>
+
+  <div class="controls">
+    <button id="cameraUp">Camera Up</button>
+    <button id="cameraDown">Camera Down</button>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="tts-input" placeholder="Enter text to speak">
+    <button id="speak-btn">Speak</button>
+    <button id="mic-btn">Mic Stream</button>
+  </div>
+
+  <div id="ai-tab">
+    <label>AI Mode:
+      <select id="ai-mode-select">
+        <option value="local">Local</option>
+        <option value="online">Online</option>
+        <option value="dual">Dual</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="settings-modal">
+    <h3>Settings</h3>
+    <label>Movement Speed:
+      <input type="number" id="speed" min="1" max="100" value="50">
+    </label>
+    <button id="save-settings">Save</button>
+  </div>
+
+  <div id="keyboard-modal">
+    <h3>Keyboard Shortcuts</h3>
+    <div id="keyboard-entries">
+      <!-- dynamically filled via renderer.js -->
+    </div>
+    <button id="save-keyboard">Save</button>
+  </div>
+
+  <div id="volume-container">
+    Volume: <input type="range" id="volume-slider" min="0" max="100" value="50">
+  </div>
+
+  <div id="robot-audio"></div>
+
+  <script src="renderer.js"></script>
 </body>
 </html>
