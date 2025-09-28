@@ -1,0 +1,18 @@
+{
+  "speed": 50,
+  "keyboard": {
+    "forward": "ArrowUp",
+    "backward": "ArrowDown",
+    "left": "ArrowLeft",
+    "right": "ArrowRight",
+    "arm-up": "W",
+    "arm-down": "S",
+    "claw-open": "A",
+    "claw-close": "D",
+    "claw-turn": "E",
+    "mic": "M",
+    "tts": "T"
+  },
+  "aiMode": false,
+  "volume": 50
+}
