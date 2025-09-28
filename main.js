@@ -1,17 +1,29 @@
-const { app, BrowserWindow, ipcMain, dialog, globalShortcut, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
-const Store = require('electron-store');
-const store = new Store();
+const fs = require('fs');
+
+const configPath = path.join(app.getPath('userData'), 'config.json');
+let config = { speed: 50, volume: 50, aiEnabled: true, keymap: {} };
+
+// Load or create config
+try {
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath));
+  } else {
+    fs.writeFileSync(configPath, JSON.stringify(config));
+  }
+} catch (e) {
+  console.error('Failed to load config:', e);
+}
 
 let mainWindow;
 
-// Create the main application window
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1024,
+    height: 768,
     webPreferences: {
-      preload: path.join(__dirname, 'renderer.js'),
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
       contextIsolation: false
     },
@@ -20,79 +32,38 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Load saved window size/position
-  const bounds = store.get('windowBounds');
-  if (bounds) mainWindow.setBounds(bounds);
-
-  mainWindow.on('close', () => {
-    store.set('windowBounds', mainWindow.getBounds());
-  });
-}
-
-// App ready
-app.whenReady().then(() => {
-  createWindow();
-
-  // Register global shortcuts for robot control
-  const shortcuts = store.get('keyboardShortcuts') || {};
-  for (let action in shortcuts) {
-    globalShortcut.register(shortcuts[action], () => {
-      mainWindow.webContents.send('keyboard-action', action);
-    });
-  }
-
   // Custom menu
   const template = [
     {
       label: 'Mebo',
       submenu: [
-        { label: 'Settings', click: () => mainWindow.webContents.send('open-settings') },
-        { label: 'Keyboard Shortcuts', click: () => mainWindow.webContents.send('open-keyboard') },
-        { type: 'separator' },
-        { label: 'Exit', click: () => app.quit() }
+        { role: 'quit' }
       ]
     },
     {
-      label: 'AI',
+      label: 'Controls',
       submenu: [
-        { label: 'Enable Local LLM', click: () => mainWindow.webContents.send('toggle-llm', 'local') },
-        { label: 'Enable Online LLM', click: () => mainWindow.webContents.send('toggle-llm', 'online') },
-        { label: 'Dual Mode', click: () => mainWindow.webContents.send('toggle-llm', 'dual') }
+        { label: 'Keyboard Shortcuts', click: () => mainWindow.webContents.send('open-shortcuts') },
+        { label: 'AI Settings', click: () => mainWindow.webContents.send('open-ai') }
       ]
-    }
+    },
+    { role: 'help' }
   ];
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
-});
+}
 
-// IPC listeners for commands from renderer
-ipcMain.on('robot-command', (event, command, payload) => {
-  // Forward to robot API via HTTP or local API
-  mainWindow.webContents.send('send-command', { command, payload });
-});
+app.whenReady().then(createWindow);
 
-ipcMain.on('save-settings', (event, settings) => {
-  store.set('settings', settings);
-});
-
-ipcMain.on('load-settings', (event) => {
-  event.returnValue = store.get('settings') || {};
-});
-
-// TTS / mic streaming
-ipcMain.on('speak-text', (event, text) => {
-  mainWindow.webContents.send('tts-command', text);
-});
-
-ipcMain.on('mic-stream', (event, action) => {
-  mainWindow.webContents.send('mic-command', action);
-});
-
-// Clean up on all windows closed
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit();
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// IPC for saving config
+ipcMain.on('save-config', (_, newConfig) => {
+  config = { ...config, ...newConfig };
+  fs.writeFileSync(configPath, JSON.stringify(config));
 });
+
+// IPC to request config
+ipcMain.handle('get-config', () => config);
