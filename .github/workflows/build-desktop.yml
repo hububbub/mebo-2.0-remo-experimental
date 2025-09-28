@@ -24,13 +24,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 4. Build Windows portable app
+      # 4. Extract version from package.json
+      - name: Get app version
+        id: get_version
+        run: |
+          echo "APP_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+
+      # 5. Build Windows portable app
       - name: Build Windows portable EXE
         run: npx electron-builder --win --x64 --portable
 
-      # 5. Upload artifact
+      # 6. Upload artifact with version in name
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mebo-control-windows
+          name: mebo-control-windows-${{ env.APP_VERSION }}
           path: dist/*.exe
