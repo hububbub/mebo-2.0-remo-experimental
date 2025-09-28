@@ -1,32 +1,36 @@
-name: Build Windows Portable App
+name: Build Desktop App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
 
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
-      - name: Checkout code
+      # 1. Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: npm install
 
-      - name: Build Windows Portable
-        run: npm run build
+      # 4. Build Windows portable app
+      - name: Build Windows portable EXE
+        run: npx electron-builder --win --x64 --portable
 
-      - name: Upload Windows Portable Artifact
+      # 5. Upload artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-Windows
+          name: mebo-control-windows
           path: dist/*.exe
