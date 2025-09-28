@@ -1,80 +1,106 @@
 const { ipcRenderer } = require('electron');
-const fs = require('fs');
-const path = require('path');
+const Store = require('electron-store');
+const store = new Store();
 
-// Load config
-const configPath = path.join(__dirname, '../config.json');
-let config = JSON.parse(fs.readFileSync(configPath));
+let settings = store.get('settings') || {};
+let micStreaming = false;
+let aiMode = 'local'; // local, online, dual
 
-// Axios fallback
-let axios;
-try { axios = require('axios'); } 
-catch(e){ console.log('Axios not installed'); }
-
-// Mebo API
-let MEBO_BASE_URL = 'http://192.168.4.1'; // Update auto-detect later
-function sendCommand(endpoint, payload) {
-  if(!axios) return;
-  axios.post(`${MEBO_BASE_URL}/${endpoint}`, payload).catch(console.log);
+// Auto-load camera feed
+const cameraFeed = document.getElementById('camera-feed');
+function updateCamera() {
+  cameraFeed.src = 'http://192.168.4.1:8080/video'; // Mebo local camera stream
+  setTimeout(updateCamera, 1000);
 }
+updateCamera();
 
-// Movement
-['forward','backward','left','right'].forEach(btn => {
+// Robot control buttons
+const controls = ['forward','backward','left','right','armUp','armDown','clawOpen','clawClose','cameraUp','cameraDown'];
+controls.forEach(btn => {
   const el = document.getElementById(btn);
-  if(el) el.onclick = () => sendCommand('move',{direction:btn,speed:config.speed});
-});
-
-// Arm/Claw
-['arm-up','arm-down','claw-open','claw-close','claw-turn'].forEach(btn => {
-  const el = document.getElementById(btn);
-  if(el) el.onclick = () => sendCommand('arm',{action:btn});
-});
-
-// Mic streaming
-let mediaStream;
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-document.getElementById('mic-btn').onclick = async () => {
-  if(!mediaStream){
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const source = audioCtx.createMediaStreamSource(mediaStream);
-    const processor = audioCtx.createScriptProcessor(4096,1,1);
-    source.connect(processor);
-    processor.connect(audioCtx.destination);
-    processor.onaudioprocess = e => {
-      const data = e.inputBuffer.getChannelData(0);
-      // TODO: send WAV to Mebo speaker
-    };
-  } else {
-    mediaStream.getTracks().forEach(t=>t.stop());
-    mediaStream=null;
+  if(el) {
+    el.addEventListener('click', () => {
+      ipcRenderer.send('robot-command', btn, { speed: settings.speed || 50 });
+    });
   }
-};
-
-// Text-to-speech
-document.getElementById('tts-send').onclick = () => {
-  const text = document.getElementById('tts-text').value;
-  sendCommand('tts',{text});
-};
-
-// Save settings
-document.getElementById('save-settings').onclick = () => {
-  config.speed = Number(document.getElementById('speed').value);
-  config.aiMode = document.getElementById('ai-toggle').checked;
-  config.volume = Number(document.getElementById('volume').value);
-  ipcRenderer.send('save-config',config);
-};
+});
 
 // Keyboard shortcuts
-document.addEventListener('keydown', e => {
-  for(let key in config.keyboard){
-    if(e.key===config.keyboard[key]){
-      const btn = document.getElementById(key);
-      if(btn) btn.click();
+document.addEventListener('keydown', (e) => {
+  const keyMap = store.get('keyboardShortcuts') || {};
+  for (let action in keyMap) {
+    if(e.key.toLowerCase() === keyMap[action].toLowerCase()) {
+      ipcRenderer.send('robot-command', action, { speed: settings.speed || 50 });
+      e.preventDefault();
     }
   }
 });
 
-// Video feed
-const videoEl = document.getElementById('video-feed');
-videoEl.src = `${MEBO_BASE_URL}/camera`;
-videoEl.play().catch(console.log);
+// AI tab commands
+ipcRenderer.on('toggle-llm', (event, mode) => {
+  aiMode = mode;
+  console.log('AI mode set to:', mode);
+});
+
+// Settings menu
+ipcRenderer.on('open-settings', () => {
+  document.getElementById('settings-modal').style.display = 'block';
+});
+ipcRenderer.on('open-keyboard', () => {
+  document.getElementById('keyboard-modal').style.display = 'block';
+});
+document.getElementById('save-settings').addEventListener('click', () => {
+  settings.speed = parseInt(document.getElementById('speed').value);
+  store.set('settings', settings);
+  document.getElementById('settings-modal').style.display = 'none';
+});
+
+// TTS & mic streaming
+document.getElementById('mic-btn').addEventListener('click', () => {
+  micStreaming = !micStreaming;
+  ipcRenderer.send('mic-stream', micStreaming ? 'start' : 'stop');
+});
+document.getElementById('speak-btn').addEventListener('click', () => {
+  const text = document.getElementById('tts-input').value;
+  ipcRenderer.send('speak-text', text);
+});
+
+// Handle robot commands from main (for AI autonomous control)
+ipcRenderer.on('send-command', (event, { command, payload }) => {
+  // Execute robot command
+  console.log('Robot command received:', command, payload);
+  // Send HTTP request to Mebo API
+  fetch(`http://192.168.4.1/api/${command}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).catch(err => console.error('Error sending command:', err));
+});
+
+// Persistent keyboard shortcut changes
+document.getElementById('save-keyboard').addEventListener('click', () => {
+  const newMap = {};
+  controls.forEach(btn => {
+    const val = document.getElementById('key-' + btn).value;
+    if(val) newMap[btn] = val;
+  });
+  store.set('keyboardShortcuts', newMap);
+  document.getElementById('keyboard-modal').style.display = 'none';
+});
+
+// Audio streaming from Mebo mic
+const audioElement = document.getElementById('robot-audio');
+let audioStream = new Audio();
+audioStream.src = 'http://192.168.4.1:8081/audio'; // Mebo mic stream
+audioStream.autoplay = true;
+audioElement.appendChild(audioStream);
+
+// Volume control
+document.getElementById('volume-slider').addEventListener('input', (e) => {
+  audioStream.volume = e.target.value / 100;
+});
+
+// Auto-save settings periodically
+setInterval(() => {
+  store.set('settings', settings);
+}, 5000);
