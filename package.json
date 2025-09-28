@@ -1,7 +1,7 @@
 {
   "name": "mebo-control-app",
   "version": "1.0.0",
-  "description": "Cross-platform desktop app to control the Mebo 2.0 robot",
+  "description": "Cross-platform desktop app to control the Mebo 2.0 robot (Windows + Linux portable builds)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -26,10 +26,6 @@
     "win": {
       "target": "portable",
       "icon": "build/icon.ico"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "build/icon.icns"
     },
     "linux": {
       "target": "AppImage",
