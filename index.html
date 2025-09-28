@@ -2,39 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mebo Control</title>
-  <style>
-    body { margin: 0; font-family: sans-serif; }
-    #cameraFeed { width: 100%; height: 60%; background: black; }
-    #controls { display: flex; justify-content: space-around; padding: 10px; }
-    #settings { display: flex; justify-content: space-between; padding: 10px; }
-    input[type=range] { width: 100px; }
-  </style>
+  <title>Mebo Control App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <video id="cameraFeed" autoplay></video>
+  <h1>Mebo 2.0 Control</h1>
 
+  <!-- Camera feed -->
+  <video id="cameraFeed" width="640" height="480" autoplay></video>
+
+  <!-- Controls -->
   <div id="controls">
-    <button onclick="sendCommand('forward')">Forward</button>
-    <button onclick="sendCommand('backward')">Backward</button>
-    <button onclick="sendCommand('left')">Left</button>
-    <button onclick="sendCommand('right')">Right</button>
-    <button onclick="sendCommand('arm_up')">Arm Up</button>
-    <button onclick="sendCommand('arm_down')">Arm Down</button>
-    <button onclick="sendCommand('claw_open')">Claw Open</button>
-    <button onclick="sendCommand('claw_close')">Claw Close</button>
-  </div>
+    <button id="forward">Forward</button>
+    <button id="backward">Backward</button>
+    <button id="left">Left</button>
+    <button id="right">Right</button>
 
-  <div id="settings">
-    <div>
-      Speed: <input type="range" id="speedSlider" min="0" max="100">
-      Volume: <input type="range" id="volumeSlider" min="0" max="100">
-    </div>
-    <div>
-      <input type="text" id="ttsInput" placeholder="Text to speak">
-      <button id="ttsBtn">Speak</button>
-      <button id="micBtn">Mic</button>
-    </div>
+    <!-- Arm/Claw -->
+    <button id="armUp">Arm Up</button>
+    <button id="armDown">Arm Down</button>
+    <button id="clawOpen">Claw Open</button>
+    <button id="clawClose">Claw Close</button>
+
+    <!-- Mic / TTS -->
+    <input type="text" id="ttsText" placeholder="Type text to speak">
+    <button id="speakBtn">Speak</button>
+    <button id="micBtn">Mic</button>
+    <input type="range" id="volumeSlider" min="0" max="100" value="50">
   </div>
 
   <script src="renderer.js"></script>
