@@ -1,26 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Mebo Control</title>
-  <style>
-    body { margin:0; font-family:sans-serif; }
-    #controls { position:absolute; bottom:10px; width:100%; text-align:center; }
-    button { margin:5px; padding:10px 20px; font-size:16px; }
-  </style>
+<meta charset="UTF-8">
+<title>Mebo Control</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#111;color:#fff;}
+#video-feed{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+#controls{position:absolute;bottom:10px;width:100%;display:flex;justify-content:center;gap:5px;}
+button{padding:10px;font-size:16px;}
+#settings{position:absolute;top:10px;right:10px;background:#222;padding:10px;}
+</style>
 </head>
 <body>
-  <video id="liveFeed" autoplay playsinline style="width:100%; height:100%;"></video>
-  <div id="controls">
-    <button id="btnForward">Forward</button>
-    <button id="btnBack">Back</button>
-    <button id="btnLeft">Left</button>
-    <button id="btnRight">Right</button>
-    <button id="armUp">Arm Up</button>
-    <button id="armDown">Arm Down</button>
-    <button id="clawOpen">Claw Open</button>
-    <button id="clawClose">Claw Close</button>
-    <button id="btnMic">Mic</button>
-    <button id="toggleAI">AI Mode</button>
-  </div>
+<video id="video-feed" autoplay></video>
+
+<div id="controls">
+<button id="forward">Forward</button>
+<button id="backward">Backward</button>
+<button id="left">Left</button>
+<button id="right">Right</button>
+<button id="arm-up">Arm Up</button>
+<button id="arm-down">Arm Down</button>
+<button id="claw-open">Claw Open</button>
+<button id="claw-close">Claw Close</button>
+<button id="claw-turn">Claw Turn</button>
+<button id="mic-btn">Mic</button>
+<input type="text" id="tts-text" placeholder="Enter text">
+<button id="tts-send">Speak</button>
+</div>
+
+<div id="settings">
+Speed: <input type="number" id="speed" min="1" max="100" value="50"><br>
+AI Mode: <input type="checkbox" id="ai-toggle"><br>
+<button id="save-settings">Save</button>
+</div>
+<script src="renderer.js"></script>
 </body>
 </html>
