@@ -1,4 +1,4 @@
-name: Build Desktop App
+name: Build Portable Windows App
 
 on:
   push:
@@ -8,18 +8,19 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup Node
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20.x
-    - name: Install dependencies
-      run: npm install
-    - name: Build Windows app
-      run: npm run build
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: MeboControl-Windows
-        path: dist
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build portable Windows app
+        run: npm run build
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeboControl-Windows
+          path: dist/*.exe
