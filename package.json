@@ -1,14 +1,18 @@
 {
   "name": "mebo-control-app",
   "version": "1.0.0",
-  "description": "Cross-platform desktop app to control the Mebo 2.0 robot (Windows portable only)",
+  "description": "Cross-platform desktop app to control the Mebo 2.0 robot (Windows portable)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64"
+    "build": "electron-builder --win --x64 --portable"
   },
   "author": "Your Name",
   "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.6",
+    "electron-store": "^8.1.0"
+  },
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.13.3"
@@ -17,18 +21,14 @@
     "appId": "com.mebo.control",
     "productName": "Mebo Control",
     "files": [
-      "src/**/*",
-      "build/**/*",
-      "config.json",
-      "renderer.js",
-      "index.html"
+      "**/*"
     ],
     "directories": {
       "buildResources": "build"
     },
     "win": {
-      "icon": "build/icon.ico",
-      "target": ["portable"]
+      "target": ["portable"],
+      "icon": "build/icon.ico"
     }
   }
 }
