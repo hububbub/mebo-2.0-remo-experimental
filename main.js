@@ -4,21 +4,9 @@ const fs = require('fs');
 
 let win;
 const configPath = path.join(__dirname, '../config.json');
+let config = JSON.parse(fs.readFileSync(configPath));
 
-// Load or create default config
-let config = {
-  speed: 50,
-  keyboard: {},
-  aiMode: false
-};
-
-if (fs.existsSync(configPath)) {
-  try { config = JSON.parse(fs.readFileSync(configPath)); } 
-  catch(e){ console.log('Invalid config.json, using defaults'); }
-} else {
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-}
-
+// Create the main window
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,
@@ -32,6 +20,7 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'index.html'));
 }
 
+// Listen for config updates
 ipcMain.on('save-config', (event, newConfig) => {
   config = newConfig;
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
