@@ -1,7 +1,7 @@
+// preload.js - safe bridge between renderer and main (exposes only config APIs)
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("meboAI", {
-  analyzeFrame: (frameBase64) => ipcRenderer.invoke("analyze-frame", frameBase64),
-  setProvider: (provider) => ipcRenderer.send("set-ai-provider", provider),
-  setLocalApiUrl: (url) => ipcRenderer.send("set-local-api-url", url)
+contextBridge.exposeInMainWorld("electronAPI", {
+  getConfig: () => ipcRenderer.invoke("get-config"),
+  saveConfig: (cfg) => ipcRenderer.invoke("save-config", cfg)
 });
