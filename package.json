@@ -1,11 +1,11 @@
 {
   "name": "mebo-control-app",
   "version": "1.0.0",
-  "description": "Windows-only desktop app to control Mebo 2.0",
+  "description": "Windows-only portable Mebo 2.0 control app",
   "main": "main.js",
   "scripts": {
-    "start": "node/node.exe ./node_modules/.bin/electron .",
-    "build": "node/node.exe ./node_modules/.bin/electron-builder --win --x64 --dir"
+    "start": "electron .",
+    "build": "electron-builder --win --x64 --portable"
   },
   "author": "Your Name",
   "license": "MIT",
@@ -24,7 +24,8 @@
       "buildResources": "build"
     },
     "win": {
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "target": ["portable"]
     }
   }
 }
