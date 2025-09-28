@@ -3,36 +3,36 @@ name: Build Desktop App
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
       - name: Install dependencies
         run: npm install
 
-      - name: Get app version
-        id: get_version
-        run: |
-          node -e "const pkg=require('./package.json'); console.log('APP_VERSION='+pkg.version);" > version.txt
-          set /p APP_VERSION=<version.txt
-          echo "APP_VERSION=%APP_VERSION%" >> $GITHUB_ENV
+      - name: Build portable Windows app
+        run: npm run build
 
-      - name: Build Windows portable
+      - name: Zip dist folder
         run: |
-          npx electron-builder --win --x64 --portable --projectDir .
+          cd dist
+          powershell Compress-Archive * ..\MeboControl-Windows.zip
+          cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-Windows-${{ env.APP_VERSION }}
-          path: dist/*.exe
+          name: MeboControl-Windows
+          path: MeboControl-Windows.zip
