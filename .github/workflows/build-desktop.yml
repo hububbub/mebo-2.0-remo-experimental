@@ -1,33 +1,43 @@
-name: Build Mebo Control App
+name: Build MeboControl (Win+Linux)
 
 on:
   push:
     branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install dependencies
+      - name: Install (ci)
         run: npm ci
 
-      - name: Build app
+      - name: Build (portable, no publish)
         run: npm run build
 
-      - name: Upload Artifacts
+      - name: Upload Linux AppImage
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-${{ matrix.os }}
-          path: dist/*
+          name: MeboControl-Linux.AppImage
+          path: dist/*.AppImage
+
+      - name: Upload Windows EXE
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeboControl-Windows.exe
+          path: dist/*.exe
