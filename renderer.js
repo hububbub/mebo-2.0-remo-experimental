@@ -1,76 +1,65 @@
 const { ipcRenderer } = require('electron');
+const fs = require('fs');
+const path = require('path');
 
-// Settings
-let config = { speed: 50, aiMode: false };
+const configPath = path.join(__dirname, 'config.json');
+let config = JSON.parse(fs.readFileSync(configPath));
 
-// Load settings on startup
-(async () => {
-  config = await ipcRenderer.invoke('get-config');
-  document.getElementById('speedSlider').value = config.speed;
-  document.getElementById('aiToggle').checked = config.aiMode;
-})();
-
-// Save settings
+// Helper to save config
 function saveConfig() {
-  ipcRenderer.invoke('set-config', config);
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
-// Movement buttons
-const moveButtons = {
-  forward: 'moveForward',
-  backward: 'moveBackward',
-  left: 'turnLeft',
-  right: 'turnRight',
-};
-Object.keys(moveButtons).forEach(id => {
-  document.getElementById(id).addEventListener('click', () => {
-    ipcRenderer.invoke('send-command', `${moveButtons[id]}?speed=${config.speed}`);
-  });
-});
+// Movement commands
+function move(direction) {
+  const speed = config.speed;
+  // Send HTTP request to Mebo robot
+  fetch(`http://192.168.10.1/move?dir=${direction}&speed=${speed}`);
+}
 
-// Arm & claw
-const armButtons = { up: 'armUp', down: 'armDown', open: 'clawOpen', close: 'clawClose', turn: 'clawTurn' };
-Object.keys(armButtons).forEach(id => {
-  document.getElementById(id).addEventListener('click', () => {
-    ipcRenderer.invoke('send-command', armButtons[id]);
-  });
-});
+// Hook buttons
+document.getElementById('btnForward').onclick = () => move('forward');
+document.getElementById('btnBack').onclick = () => move('backward');
+document.getElementById('btnLeft').onclick = () => move('left');
+document.getElementById('btnRight').onclick = () => move('right');
 
-// Keyboard controls
-document.addEventListener('keydown', e => {
-  switch(e.key.toLowerCase()) {
-    case 'w': ipcRenderer.invoke('send-command', `moveForward?speed=${config.speed}`); break;
-    case 's': ipcRenderer.invoke('send-command', `moveBackward?speed=${config.speed}`); break;
-    case 'a': ipcRenderer.invoke('send-command', 'turnLeft'); break;
-    case 'd': ipcRenderer.invoke('send-command', 'turnRight'); break;
-    case 'i': ipcRenderer.invoke('send-command', 'armUp'); break;
-    case 'k': ipcRenderer.invoke('send-command', 'armDown'); break;
-    case 'o': ipcRenderer.invoke('send-command', 'clawOpen'); break;
-    case 'p': ipcRenderer.invoke('send-command', 'clawClose'); break;
-    case 'l': ipcRenderer.invoke('send-command', 'clawTurn'); break;
+// Arm & Claw
+document.getElementById('armUp').onclick = () => fetch('http://192.168.10.1/arm/up');
+document.getElementById('armDown').onclick = () => fetch('http://192.168.10.1/arm/down');
+document.getElementById('clawOpen').onclick = () => fetch('http://192.168.10.1/claw/open');
+document.getElementById('clawClose').onclick = () => fetch('http://192.168.10.1/claw/close');
+
+// TTS / Mic
+let micStream, audioContext, micNode, destNode;
+document.getElementById('btnMic').onclick = async () => {
+  if (!micStream) {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContext = new AudioContext();
+    micNode = audioContext.createMediaStreamSource(micStream);
+    destNode = audioContext.createMediaStreamDestination();
+    micNode.connect(destNode);
+    // Stream to Mebo TTS endpoint (example)
+    const reader = destNode.stream.getAudioTracks()[0];
+    fetch('http://192.168.10.1/speak', { method: 'POST', body: reader });
   }
-});
+};
 
-// TTS & mic streaming
-document.getElementById('speakBtn').addEventListener('click', () => {
-  const text = document.getElementById('ttsInput').value;
-  ipcRenderer.invoke('send-command', `tts?text=${encodeURIComponent(text)}`);
-});
-
-// Live video stream
-const videoEl = document.getElementById('liveVideo');
-const meboIP = config.meboIP || '192.168.4.1';
-videoEl.src = `http://${meboIP}/video_feed`;
-
-// Live audio
-const audioEl = document.getElementById('liveAudio');
-audioEl.src = `http://${meboIP}/audio_feed`;
-document.getElementById('volumeSlider').addEventListener('input', e => {
-  audioEl.volume = e.target.value / 100;
-});
-
-// AI mode toggle
-document.getElementById('aiToggle').addEventListener('change', e => {
-  config.aiMode = e.target.checked;
+// AI Mode
+document.getElementById('toggleAI').onclick = () => {
+  config.aiEnabled = !config.aiEnabled;
   saveConfig();
+};
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  switch(e.key) {
+    case 'w': move('forward'); break;
+    case 's': move('backward'); break;
+    case 'a': move('left'); break;
+    case 'd': move('right'); break;
+    case 'ArrowUp': fetch('http://192.168.10.1/arm/up'); break;
+    case 'ArrowDown': fetch('http://192.168.10.1/arm/down'); break;
+    case 'o': fetch('http://192.168.10.1/claw/open'); break;
+    case 'c': fetch('http://192.168.10.1/claw/close'); break;
+  }
 });
