@@ -2,10 +2,25 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const configPath = path.join(__dirname, 'config.json');
+let win;
+const configPath = path.join(__dirname, '../config.json');
+
+// Load or create default config
+let config = {
+  speed: 50,
+  keyboard: {},
+  aiMode: false
+};
+
+if (fs.existsSync(configPath)) {
+  try { config = JSON.parse(fs.readFileSync(configPath)); } 
+  catch(e){ console.log('Invalid config.json, using defaults'); }
+} else {
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+}
 
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1280,
     height: 720,
     webPreferences: {
@@ -14,23 +29,13 @@ function createWindow() {
       contextIsolation: false
     }
   });
-
-  win.loadFile('index.html');
+  win.loadFile(path.join(__dirname, 'index.html'));
 }
 
-app.whenReady().then(() => {
-  // Create config.json if missing
-  if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify({
-      speed: 50,
-      aiEnabled: false,
-      model: 'default'
-    }, null, 2));
-  }
-
-  createWindow();
+ipcMain.on('save-config', (event, newConfig) => {
+  config = newConfig;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.whenReady().then(createWindow);
+app.on('window-all-closed', () => { if(process.platform !== 'darwin') app.quit(); });
