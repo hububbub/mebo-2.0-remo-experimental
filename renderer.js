@@ -1,89 +1,66 @@
-const { ipcRenderer } = require('electron');
-
-// Elements
-const videoEl = document.getElementById('cameraFeed');
-const speedSlider = document.getElementById('speedSlider');
-const volumeSlider = document.getElementById('volumeSlider');
-const micButton = document.getElementById('micBtn');
-const ttsInput = document.getElementById('ttsInput');
-const ttsBtn = document.getElementById('ttsBtn');
-
-// Config
-let config = {};
-async function loadConfig() {
-  config = await ipcRenderer.invoke('get-config');
-  speedSlider.value = config.speed;
-  volumeSlider.value = config.volume;
-}
-loadConfig();
-
-// Save config changes
-speedSlider.addEventListener('input', () => saveConfig());
-volumeSlider.addEventListener('input', () => saveConfig());
-function saveConfig() {
-  config.speed = Number(speedSlider.value);
-  config.volume = Number(volumeSlider.value);
-  ipcRenderer.send('save-config', config);
+// Axios workaround: use CDN if not installed
+let axios;
+try {
+  axios = require('axios');
+} catch (e) {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
+  document.head.appendChild(script);
+  script.onload = () => { axios = window.axios; init(); };
+  return;
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', e => {
-  switch (e.code) {
-    case 'ArrowUp': sendCommand('forward'); break;
-    case 'ArrowDown': sendCommand('backward'); break;
-    case 'ArrowLeft': sendCommand('left'); break;
-    case 'ArrowRight': sendCommand('right'); break;
-    case 'KeyW': sendCommand('arm_up'); break;
-    case 'KeyS': sendCommand('arm_down'); break;
-    case 'KeyA': sendCommand('claw_open'); break;
-    case 'KeyD': sendCommand('claw_close'); break;
-  }
-});
+init();
 
-// Send command to Mebo robot
-function sendCommand(cmd) {
-  fetch(`http://mebo.local/api/${cmd}?speed=${config.speed}`, { method: 'POST' }).catch(console.error);
-}
+function init() {
+  const baseURL = 'http://192.168.4.1'; // Replace with Mebo's local IP if needed
 
-// Camera feed
-videoEl.src = 'http://mebo.local/camera';
-
-// TTS
-ttsBtn.addEventListener('click', () => {
-  fetch(`http://mebo.local/api/tts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: ttsInput.value })
-  }).catch(console.error);
-});
-
-// Mic streaming
-micButton.addEventListener('mousedown', startMicStream);
-micButton.addEventListener('mouseup', stopMicStream);
-
-let mediaStream;
-async function startMicStream() {
-  mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(mediaStream);
-  const processor = audioContext.createScriptProcessor(2048, 1, 1);
-
-  source.connect(processor);
-  processor.connect(audioContext.destination);
-
-  processor.onaudioprocess = e => {
-    const input = e.inputBuffer.getChannelData(0);
-    // send WAV chunk to Mebo API
-    fetch('http://mebo.local/api/mic', {
-      method: 'POST',
-      body: input.buffer
-    }).catch(console.error);
+  const commands = {
+    forward: '/api/move?dir=forward',
+    backward: '/api/move?dir=backward',
+    left: '/api/move?dir=left',
+    right: '/api/move?dir=right',
+    armUp: '/api/arm?move=up',
+    armDown: '/api/arm?move=down',
+    clawOpen: '/api/claw?move=open',
+    clawClose: '/api/claw?move=close',
+    speak: text => `/api/speak?text=${encodeURIComponent(text)}`,
+    mic: '/api/mic'
   };
-}
 
-function stopMicStream() {
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(track => track.stop());
-    mediaStream = null;
+  for (let key in commands) {
+    const btn = document.getElementById(key);
+    if (!btn) continue;
+    btn.addEventListener('click', async () => {
+      if (key === 'speak') {
+        const text = document.getElementById('ttsText').value;
+        await axios.get(baseURL + commands.speak(text));
+      } else {
+        await axios.get(baseURL + commands[key]);
+      }
+    });
   }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    switch (e.key) {
+      case 'ArrowUp': axios.get(baseURL + commands.forward); break;
+      case 'ArrowDown': axios.get(baseURL + commands.backward); break;
+      case 'ArrowLeft': axios.get(baseURL + commands.left); break;
+      case 'ArrowRight': axios.get(baseURL + commands.right); break;
+      case 'w': axios.get(baseURL + commands.armUp); break;
+      case 's': axios.get(baseURL + commands.armDown); break;
+      case 'a': axios.get(baseURL + commands.clawOpen); break;
+      case 'd': axios.get(baseURL + commands.clawClose); break;
+    }
+  });
+
+  // Mic streaming and volume
+  const volumeSlider = document.getElementById('volumeSlider');
+  volumeSlider.addEventListener('input', e => {
+    // send volume to robot speaker API
+    axios.get(baseURL + `/api/volume?level=${e.target.value}`);
+  });
+
+  // TODO: Mic streaming setup, live camera feed
 }
