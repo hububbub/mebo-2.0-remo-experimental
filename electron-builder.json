@@ -1,0 +1,22 @@
+{
+  "appId": "com.mebo.control",
+  "productName": "MeboControl",
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "files": [
+    "**/*"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/icon.ico",
+    "artifactName": "${productName}-Portable-${version}.${ext}"
+  },
+  "publish": "never"
+}
