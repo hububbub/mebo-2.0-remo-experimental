@@ -1,18 +1,24 @@
 {
-  "speed": 50,
+  "meboBaseUrls": [
+    "http://192.168.4.1",
+    "http://192.168.10.1",
+    "http://192.168.0.1"
+  ],
+  "baseUrl": "http://192.168.4.1",
+  "speed": 5,
+  "volume": 50,
+  "aiMode": "local",
+  "lastModel": "local",
   "keyboard": {
     "forward": "ArrowUp",
     "backward": "ArrowDown",
     "left": "ArrowLeft",
     "right": "ArrowRight",
-    "arm-up": "W",
-    "arm-down": "S",
-    "claw-open": "A",
-    "claw-close": "D",
-    "claw-turn": "E",
-    "mic": "M",
-    "tts": "T"
-  },
-  "aiMode": false,
-  "volume": 50
+    "armUp": "w",
+    "armDown": "s",
+    "clawOpen": "a",
+    "clawClose": "d",
+    "mic": "m",
+    "tts": "t"
+  }
 }
