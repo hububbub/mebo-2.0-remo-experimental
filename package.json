@@ -1,40 +1,18 @@
 {
   "name": "mebo-control-app",
   "version": "1.0.0",
-  "description": "Mebo robot control desktop app with AI integration",
+  "description": "Mebo 2.0 Control — Windows portable app with AI, audio, and camera",
   "main": "main.js",
   "author": "Your Name",
   "license": "MIT",
+  "private": true,
   "scripts": {
     "start": "electron .",
-    "dev": "electron .",
     "build": "electron-builder --win --x64"
   },
-  "build": {
-    "appId": "com.mebo.control",
-    "productName": "MeboControl",
-    "files": [
-      "main.js",
-      "preload.js",
-      "renderer.js",
-      "config.json",
-      "index.html",
-      "assets/**/*"
-    ],
-    "directories": {
-      "buildResources": "build",
-      "output": "dist"
-    },
-    "win": {
-      "target": "portable",
-      "icon": "build/icon.ico"
-    }
-  },
+  "dependencies": {},
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.6.0"
-  },
-  "dependencies": {
-    "fs-extra": "^11.2.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3"
   }
 }
