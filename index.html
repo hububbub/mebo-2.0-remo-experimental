@@ -1,34 +1,103 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Mebo Control App</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <title>Mebo Control</title>
+  <style>
+    body { margin:0; font-family: system-ui, sans-serif; background:#0f1720; color:#e6eef8; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#061423; }
+    header h1 { margin:0; font-size:16px; }
+    #main { display:flex; gap:12px; padding:12px; }
+    #left { flex:1; }
+    #right { width:360px; }
+    #cameraFeed { width:100%; height:420px; background:#000; border-radius:8px; object-fit:cover; }
+    .controls { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    button { background:#0b2a3a; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+    input, select, textarea { width:100%; padding:8px; border-radius:6px; background:#07141c; color:#fff; border:1px solid #123; }
+    #logPanel { margin-top:10px; height:160px; overflow:auto; background:#071014; padding:8px; border-radius:6px; font-family:monospace; font-size:13px; }
+    label { font-size:13px; color:#9fb4c8; display:block; margin-top:10px; }
+    .small { font-size:12px; color:#8aa0b4; }
+  </style>
 </head>
 <body>
-  <h1>Mebo 2.0 Control</h1>
+  <header>
+    <h1>Mebo Control — Portable</h1>
+    <div>
+      <button id="toggleLog">Show Log</button>
+      <button id="exportLog">Export Log</button>
+    </div>
+  </header>
 
-  <!-- Camera feed -->
-  <video id="cameraFeed" width="640" height="480" autoplay></video>
+  <div id="main">
+    <div id="left">
+      <video id="cameraFeed" autoplay playsinline></video>
 
-  <!-- Controls -->
-  <div id="controls">
-    <button id="forward">Forward</button>
-    <button id="backward">Backward</button>
-    <button id="left">Left</button>
-    <button id="right">Right</button>
+      <div class="controls">
+        <button id="forward">▲ Forward</button>
+        <button id="left">◀ Left</button>
+        <button id="right">Right ▶</button>
+        <button id="backward">▼ Back</button>
+      </div>
 
-    <!-- Arm/Claw -->
-    <button id="armUp">Arm Up</button>
-    <button id="armDown">Arm Down</button>
-    <button id="clawOpen">Claw Open</button>
-    <button id="clawClose">Claw Close</button>
+      <div class="controls">
+        <button id="armUp">Arm ▲</button>
+        <button id="armDown">Arm ▼</button>
+        <button id="clawOpen">Claw Open</button>
+        <button id="clawClose">Claw Close</button>
+        <button id="cameraUp">Cam ▲</button>
+        <button id="cameraDown">Cam ▼</button>
+      </div>
 
-    <!-- Mic / TTS -->
-    <input type="text" id="ttsText" placeholder="Type text to speak">
-    <button id="speakBtn">Speak</button>
-    <button id="micBtn">Mic</button>
-    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+      <div style="margin-top:12px;">
+        <label>AI Assistant</label>
+        <div style="display:flex; gap:8px;">
+          <select id="aiMode">
+            <option value="local">Local</option>
+            <option value="online">Online</option>
+            <option value="human">Human (Manual)</option>
+          </select>
+          <input id="aiInput" placeholder="Ask the AI..." />
+          <button id="aiSend">Send</button>
+        </div>
+        <textarea id="aiOutput" readonly style="height:120px; margin-top:8px;"></textarea>
+      </div>
+    </div>
+
+    <div id="right">
+      <label>Robot Base URL</label>
+      <input id="baseUrl" placeholder="http://192.168.4.1:80" />
+
+      <label>Movement Speed</label>
+      <input id="speed" type="number" min="1" max="10" />
+
+      <label>Endpoints (optional, leave if robot uses defaults)</label>
+      <input id="endpointMove" placeholder="move?dir=__dir__&spd=__speed__" />
+      <input id="endpointArm" placeholder="arm?dir=__dir__" />
+      <input id="endpointClaw" placeholder="claw?action=__action__" />
+      <input id="endpointStream" placeholder="stream" />
+      <input id="endpointMic" placeholder="mic" />
+      <input id="endpointSpeak" placeholder="speak?text=__text__" />
+
+      <label>Text-to-Speech</label>
+      <input id="ttsInput" placeholder="Text to speak" />
+      <div style="display:flex; gap:8px; margin-top:6px;">
+        <button id="speakBtn">Speak</button>
+        <button id="micBtn">Mic</button>
+      </div>
+
+      <label>Volume</label>
+      <input id="volumeSlider" type="range" min="0" max="100" />
+
+      <div style="margin-top:12px;">
+        <button id="saveSettings">Save Settings</button>
+        <button id="detectMebo">Autodetect Robot</button>
+      </div>
+
+      <div id="logPanel" style="display:none; margin-top:12px;">
+        <div id="logArea"></div>
+      </div>
+      <div class="small" style="margin-top:10px;">Tip: Connect your PC to the Mebo Wi-Fi first, then press Autodetect.</div>
+    </div>
   </div>
 
   <script src="renderer.js"></script>
