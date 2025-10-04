@@ -1,35 +1,59 @@
-name: Build Portable Windows App
+name: Build Mebo Control (Windows Portable)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
+      # 1️⃣ Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      # 2️⃣ Use Node (no install/setup needed)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # 3️⃣ Install dependencies (or skip if node_modules is included)
       - name: Install dependencies
-        run: npm install
-
-      - name: Build (portable exe)
-        run: npx electron-builder --win --x64
-
-      - name: Zip dist
         run: |
-          powershell -Command "Compress-Archive -Path dist\\* -DestinationPath MeboControl-Windows-${{ github.sha }}.zip"
+          if (Test-Path "node_modules") {
+            Write-Host "✅ node_modules already present — skipping install."
+          } else {
+            npm install
+          }
 
-      - name: Upload artifact
+      # 4️⃣ Build Windows portable version
+      - name: Build Windows Portable App
+        run: |
+          npx electron-builder --win portable --config electron-builder.json
+
+      # 5️⃣ Verify output folder
+      - name: Check build output
+        run: |
+          if (!(Test-Path "release")) {
+            Write-Error "❌ Build folder 'release' not found!"
+            exit 1
+          } else {
+            Write-Host "✅ Build folder exists: release"
+          }
+
+      # 6️⃣ Compress final build for upload
+      - name: Zip Windows Build
+        run: |
+          powershell -Command "Compress-Archive -Path release\* -DestinationPath MeboControl-Windows-${{ github.sha }}.zip"
+
+      # 7️⃣ Upload portable build as workflow artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mebo-control-windows-${{ github.sha }}
+          name: MeboControl-Windows
           path: MeboControl-Windows-${{ github.sha }}.zip
+          retention-days: 10
