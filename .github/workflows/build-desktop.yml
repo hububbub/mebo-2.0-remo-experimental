@@ -1,38 +1,35 @@
-name: Build Desktop App
+name: Build Portable Windows App
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build portable Windows app
-        run: npm run build
+      - name: Build (portable exe)
+        run: npx electron-builder --win --x64
 
-      - name: Zip dist folder
+      - name: Zip dist
         run: |
-          cd dist
-          powershell Compress-Archive * ..\MeboControl-Windows.zip
-          cd ..
+          powershell -Command "Compress-Archive -Path dist\\* -DestinationPath MeboControl-Windows-${{ github.sha }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MeboControl-Windows
-          path: MeboControl-Windows.zip
+          name: mebo-control-windows-${{ github.sha }}
+          path: MeboControl-Windows-${{ github.sha }}.zip
